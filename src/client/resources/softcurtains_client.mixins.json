@@ -3,7 +3,7 @@
 	"package": "com.tanishisherewith.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"com.tanishisherewith.client.mixin.ExampleClientMixin"
+		"ExampleClientMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
