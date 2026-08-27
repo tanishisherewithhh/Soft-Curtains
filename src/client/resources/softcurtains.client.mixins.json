@@ -1,9 +1,9 @@
 {
 	"required": true,
-	"package": "com.example.client.mixin",
+	"package": "com.tanishisherewith.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"ExampleClientMixin"
+		"com.tanishisherewith.client.mixin.ExampleClientMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

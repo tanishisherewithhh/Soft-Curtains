@@ -1,31 +1,31 @@
 {
 	"schemaVersion": 1,
-	"id": "modid",
+	"id": "softcurtains",
 	"version": "${version}",
-	"name": "Example Mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "Soft Curtains",
+	"description": "A simple soft curtains mod for minecraft",
 	"authors": [
-		"Me!"
+		"tanishisherewith"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://modrinth.com/mod/dynamichud",
+		"sources": "https://github.com/tanishisherewithhh/Soft-Curtains"
 	},
 	"license": "CC0-1.0",
-	"icon": "assets/modid/icon.png",
+	"icon": "assets/softcurtains/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.example.ExampleMod"
+			"com.tanishisherewith.SoftCurtainsMain"
 		],
 		"client": [
-			"com.example.client.ExampleModClient"
+			"com.tanishisherewith.client.SoftCurtainsClient"
 		]
 	},
 	"mixins": [
-		"modid.mixins.json",
+		"softcurtains.mixins.json",
 		{
-			"config": "modid.client.mixins.json",
+			"config": "softcurtains.client.mixins.json",
 			"environment": "client"
 		}
 	],
