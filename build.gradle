@@ -46,7 +46,15 @@ sourceSets {
 	}
 }
 
-tasks.withType(ProcessResources).configureEach {
+tasks.withType(Copy).configureEach {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named('sourcesJar', Jar) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named('jar', Jar) {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
