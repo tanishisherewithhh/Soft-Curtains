@@ -50,11 +50,7 @@ tasks.withType(Copy).configureEach {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-tasks.named('sourcesJar', Jar) {
-	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-tasks.named('jar', Jar) {
+tasks.withType(AbstractCopyTask).configureEach {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
