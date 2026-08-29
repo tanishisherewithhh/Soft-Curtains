@@ -8,5 +8,7 @@ public class SoftCurtainsDataGenerator implements DataGeneratorEntrypoint {
     public void onInitializeDataGenerator(FabricDataGenerator fabricDataGenerator) {
         FabricDataGenerator.Pack pack = fabricDataGenerator.createPack();
         pack.addProvider(CurtainModelProvider::new);
+        pack.addProvider(CurtainRecipeProvider::new);
+        pack.addProvider(CurtainLootTableProvider::new);
     }
 }

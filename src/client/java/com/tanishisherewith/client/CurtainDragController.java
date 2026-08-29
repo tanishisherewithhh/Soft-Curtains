@@ -28,12 +28,12 @@ public class CurtainDragController {
     private static boolean isDragging = false;
     private static double lockedDragSign = 1.0;
 
-    private static final double DRAG_SENSITIVITY = 0.005;
+    private static final double DRAG_SENSITIVITY = 0.0035;
 
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(CurtainDragController::onClientTick);
 
-        UseBlockCallback.EVENT.register((player, level, hand, hitResult) -> {
+        UseBlockCallback.EVENT.register((player, _, hand, _) -> {
             if (isDragging && player.getItemInHand(hand).isEmpty()) {
                 return InteractionResult.FAIL;
             }
@@ -78,7 +78,7 @@ public class CurtainDragController {
                         BlockState masterState = client.level.getBlockState(masterPos);
                         Direction masterFacing = masterState.getValue(CurtainRodBlock.FACING);
 
-                        lockedDragSign = -computeTrackDragSign(client, masterCurtain, masterFacing);
+                        lockedDragSign = computeTrackDragSign(client, masterCurtain, masterFacing);
                     }
                 }
             }
@@ -99,20 +99,18 @@ public class CurtainDragController {
             double rawDelta = currentMouseX - lastMouseX;
             lastMouseX = currentMouseX;
 
-            if (Math.abs(rawDelta) > 0.05) {
+            if (Math.abs(rawDelta) > 0.001) {
+                // Constant sensitivity independent of span length
                 double deltaProgress = rawDelta * DRAG_SENSITIVITY * lockedDragSign;
-
                 float newProgress = Mth.clamp((float) (curtain.openProgress + deltaProgress), 0.15f, 1.0f);
 
-                if (Math.abs(newProgress - curtain.openProgress) > 0.0001f) {
-                    curtain.openProgress = newProgress;
-                    curtain.targetOpenProgress = newProgress;
-                    curtain.isAnimating = false;
+                curtain.openProgress = newProgress;
+                curtain.targetOpenProgress = newProgress;
+                curtain.isAnimating = false;
 
-                    if (client.player.tickCount - lastSentTick >= 2) {
-                        lastSentTick = client.player.tickCount;
-                        ClientPlayNetworking.send(new CurtainDragPayload(draggingMasterPos, curtain.openProgress));
-                    }
+                if (client.player.tickCount - lastSentTick >= 1) {
+                    lastSentTick = client.player.tickCount;
+                    ClientPlayNetworking.send(new CurtainDragPayload(draggingMasterPos, curtain.openProgress));
                 }
             }
         }
@@ -122,8 +120,8 @@ public class CurtainDragController {
         Direction expDir = masterCurtain.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
 
         float yawRad = (float) Math.toRadians(client.player.getYRot());
-        double screenRightX = -Math.sin(yawRad);
-        double screenRightZ = Math.cos(yawRad);
+        double screenRightX = -Math.cos(yawRad);
+        double screenRightZ = -Math.sin(yawRad);
 
         double dot = screenRightX * expDir.getStepX() + screenRightZ * expDir.getStepZ();
         return (dot >= 0.0) ? 1.0 : -1.0;

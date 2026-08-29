@@ -1,6 +1,8 @@
 package com.tanishisherewith.block;
 
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
 import org.jspecify.annotations.NonNull;
@@ -31,6 +33,25 @@ public enum RodMaterial implements StringRepresentable {
         this.texture = texture;
         this.mapColor = mapColor;
         this.soundType = soundType;
+    }
+
+    public Item getIngredientItem() {
+        return switch (this) {
+            case OAK -> Items.OAK_PLANKS;
+            case SPRUCE -> Items.SPRUCE_PLANKS;
+            case BIRCH -> Items.BIRCH_PLANKS;
+            case JUNGLE -> Items.JUNGLE_PLANKS;
+            case ACACIA -> Items.ACACIA_PLANKS;
+            case DARK_OAK -> Items.DARK_OAK_PLANKS;
+            case MANGROVE -> Items.MANGROVE_PLANKS;
+            case CHERRY -> Items.CHERRY_PLANKS;
+            case BAMBOO -> Items.BAMBOO_PLANKS;
+            case CRIMSON -> Items.CRIMSON_PLANKS;
+            case WARPED -> Items.WARPED_PLANKS;
+            case IRON -> Items.IRON_INGOT;
+            case GOLD -> Items.GOLD_INGOT;
+            case COPPER -> Items.COPPER_INGOT;
+        };
     }
 
     public MapColor getMapColor() {

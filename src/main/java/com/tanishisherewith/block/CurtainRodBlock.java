@@ -37,6 +37,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.redstone.Orientation;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -53,9 +54,11 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
     public static final BooleanProperty LOCKED = BooleanProperty.create("locked");
 
     private static final VoxelShape SHAPE_NORTH = Block.box(0.0D, 12.0D, 12.0D, 16.0D, 16.0D, 16.0D);
-    private static final VoxelShape SHAPE_SOUTH = Block.box(0.0D, 12.0D, 0.0D, 16.0D, 16.0D, 4.0D);
+    private static final VoxelShape SHAPE_SOUTH = Block.box(0.0D, 12.0D, 0.0D,  16.0D, 16.0D, 4.0D);
     private static final VoxelShape SHAPE_WEST  = Block.box(12.0D, 12.0D, 0.0D, 16.0D, 16.0D, 16.0D);
-    private static final VoxelShape SHAPE_EAST  = Block.box(0.0D, 12.0D, 0.0D, 4.0D, 16.0D, 16.0D);
+    private static final VoxelShape SHAPE_EAST  = Block.box(0.0D,  12.0D, 0.0D, 4.0D,  16.0D, 16.0D);
+
+    public static final int MAX_LENGTH = 30;
 
     public CurtainRodBlock(Properties properties) {
         super(properties);
@@ -191,7 +194,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
 
 
             if (stack.is(ItemTags.WOOL)) {
-                if (master.getLength() < 8) {
+                if (master.getLength() < MAX_LENGTH) {
                     if (!level.isClientSide()) {
                         DyeColor woolColor = getColorFromWoolItem(stack.getItem());
                         master.addSegment(woolColor);
@@ -342,6 +345,18 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
             }
         }
         return super.playerWillDestroy(level, pos, state, player);
+    }
+
+    @Override
+    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block neighborBlock, @Nullable Orientation orientation, boolean movedByPiston) {
+        super.neighborChanged(state, level, pos, neighborBlock, orientation, movedByPiston);
+        if (!level.isClientSide() && state.getValue(HAS_CURTAIN)) {
+            BlockEntity be = level.getBlockEntity(pos);
+            if (be instanceof CurtainBlockEntity curtain) {
+                CurtainBlockEntity master = curtain.getMasterAnchor();
+                master.handleRedstoneInput(level);
+            }
+        }
     }
 
     public static DyeColor getColorFromWoolItem(Item item) {

@@ -28,7 +28,8 @@ import java.util.List;
 public class CurtainBlockEntity extends BlockEntity {
     public static final int NODES_PER_BLOCK = 16;
     public static final int GRID_H = 14;
-    public static final float STOPPER_MARGIN = 0.15625f;
+    // 1.5 pixels = 0.09375 metre
+    public static final float STOPPER_MARGIN = 0.09375f;
     public static final float CURTAIN_TOP_Y = 0.8125f;
 
     public DyeColor color = DyeColor.WHITE;
@@ -39,6 +40,8 @@ public class CurtainBlockEntity extends BlockEntity {
     public BlockPos anchorPos = null;
 
     public int length = 1;
+
+    private int lastRedstonePower = 0;
 
     // Progress values: 0.15f (Closed) to 1.0f (Open)
     public float openProgress = 1.0f;
@@ -76,7 +79,8 @@ public class CurtainBlockEntity extends BlockEntity {
         this.animStartProgress = this.openProgress;
         this.animTargetProgress = Mth.clamp(target, 0.15f, 1.0f);
         this.targetOpenProgress = this.animTargetProgress;
-        this.animTotalTicks = Math.max(1, durationTicks);
+        float distance = Math.abs(this.animTargetProgress - this.animStartProgress) / 0.85f;
+        this.animTotalTicks = Math.max(12, Math.round(durationTicks * distance));
         this.animCurrentTick = 0;
         this.isAnimating = true;
 
@@ -190,9 +194,7 @@ public class CurtainBlockEntity extends BlockEntity {
         }
 
         this.color = (newColor != null) ? newColor : DyeColor.WHITE;
-        for (int i = 0; i < this.segmentColors.size(); i++) {
-            this.segmentColors.set(i, this.color);
-        }
+        this.segmentColors.replaceAll(ignored -> this.color);
         this.setChanged();
         if (this.level != null) {
             this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
@@ -240,7 +242,6 @@ public class CurtainBlockEntity extends BlockEntity {
     public void resetGrid() {
         if (!this.isAnchor || this.posX == null || this.level == null) return;
         int gw = this.allocatedW;
-        float height = (float) this.length;
 
         Direction facing = this.getBlockState().getValue(CurtainRodBlock.FACING);
         Direction stepDir = this.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
@@ -270,6 +271,7 @@ public class CurtainBlockEntity extends BlockEntity {
         float currentTravel = totalTravel * this.openProgress;
         float compressionFactor = 1.0f - this.openProgress;
         float foldDepth = 0.02f + compressionFactor * 0.05f;
+        float totalHeight = (float) this.length - (1.0f - CURTAIN_TOP_Y);
 
         for (int ix = 0; ix < gw; ix++) {
             float u = (float) ix / (gw - 1);
@@ -278,11 +280,14 @@ public class CurtainBlockEntity extends BlockEntity {
 
             for (int iy = 0; iy < GRID_H; iy++) {
                 float v = (float) iy / (GRID_H - 1);
-                float y = CURTAIN_TOP_Y - (v * height);
+                float y = CURTAIN_TOP_Y - (v * totalHeight);
+
+                float topConstraint = (float) Math.sqrt(v);
+                float clampedZ = z * topConstraint;
 
                 this.posX[ix][iy] = this.prevX[ix][iy] = x;
                 this.posY[ix][iy] = this.prevY[ix][iy] = y;
-                this.posZ[ix][iy] = this.prevZ[ix][iy] = z;
+                this.posZ[ix][iy] = this.prevZ[ix][iy] = clampedZ;
             }
         }
     }
@@ -334,14 +339,42 @@ public class CurtainBlockEntity extends BlockEntity {
             float currentTravel = totalTravel * be.openProgress;
 
             float compression = 1.0f - be.openProgress;
-            float foldDepth = 0.02f + compression * 0.05f;
+            float foldDepth = 0.015f + compression * 0.045f;
 
             float dragVelocity = (be.openProgress - be.prevOpenProgress) * Math.abs(totalTravel);
-            be.swayVelocityX = (be.swayVelocityX + dragVelocity * 0.35f) * 0.80f;
-            be.swayVelocityZ = (be.swayVelocityZ + Math.abs(dragVelocity) * 0.20f * (float) Math.sin(be.openProgress * Math.PI)) * 0.80f;
+            be.swayVelocityX = (be.swayVelocityX + dragVelocity * 0.25f) * 0.75f;
+            be.swayVelocityZ = (be.swayVelocityZ + Math.abs(dragVelocity) * 0.15f * (float) Math.sin(be.openProgress * Math.PI)) * 0.75f;
+
+            long gameTime = level.getGameTime();
+            float windPhase = (gameTime + pos.hashCode() % 100) * 0.05f;
+            float baseWindStrength = level.isRaining() ? 0.035f : 0.015f;
+            float windZ = (float) Math.sin(windPhase) * (float) Math.cos(windPhase * 0.5f) * baseWindStrength;
+
+            /*
+            AABB curtainBox = new AABB(
+                    pos.getX() - 0.5, pos.getY() - be.length, pos.getZ() - 0.5,
+                    pos.getX() + 1.5, pos.getY() + 1.0, pos.getZ() + 1.5
+            );
+            List<Entity> entities = level.getEntities(null, curtainBox);
+            float collisionPushZ = 0.0f;
+
+            for (Entity entity : entities) {
+                if (entity.isAlive()) {
+                    float entitySpeed = (float) entity.getDeltaMovement().length();
+                    if (entitySpeed > 0.01f) {
+                        collisionPushZ += (float) (entity.getDeltaMovement().z * 0.4f);
+                    }
+                }
+            }
+
+             */
+
+            // 1.5 pixels (0.09375 metre)
+            float maxDisplacement = 0.09375f;
+            float combinedSwayZ = Mth.clamp(be.swayVelocityZ + windZ /*+ collisionPushZ*/, -maxDisplacement, maxDisplacement);
+            float totalHeight = (float) be.length - (1.0f - CURTAIN_TOP_Y);
 
             int gw = be.allocatedW;
-            float height = (float) be.length;
 
             for (int ix = 0; ix < gw; ix++) {
                 float u = (float) ix / (gw - 1);
@@ -352,21 +385,59 @@ public class CurtainBlockEntity extends BlockEntity {
 
                 for (int iy = 0; iy < GRID_H; iy++) {
                     float v = (float) iy / (GRID_H - 1);
-                    float targetY = CURTAIN_TOP_Y - (v * height);
+                    float targetY = CURTAIN_TOP_Y - (v * totalHeight);
 
                     be.prevX[ix][iy] = be.posX[ix][iy];
                     be.prevY[ix][iy] = be.posY[ix][iy];
                     be.prevZ[ix][iy] = be.posZ[ix][iy];
 
+                    // scale the fold depth near the top so it doesnt clip into the rod
+                    float topConstraint = (float) Math.sqrt(v);
+                    float clampedBaseZ = baseZ * topConstraint;
+
                     float bend = v * v;
-                    float swayOffset = be.expandRight ? (-be.swayVelocityX * bend * 0.70f) : (be.swayVelocityX * bend * 0.70f);
-                    float targetX = columnBaseX + swayOffset;
-                    float targetZ = baseZ + (be.swayVelocityZ * (float) Math.sin(v * Math.PI) * 0.35f);
+                    float swayOffsetX = be.expandRight ? (-be.swayVelocityX * bend * 0.50f) : (be.swayVelocityX * bend * 0.50f);
+
+                    float targetX = columnBaseX + swayOffsetX;
+                    float targetZ = clampedBaseZ + (combinedSwayZ * (float) Math.sin(v * Math.PI * 0.5f));
 
                     be.posX[ix][iy] = targetX;
                     be.posY[ix][iy] = targetY;
-                    be.posZ[ix][iy] = targetZ;
+                    be.posZ[ix][iy] = Mth.lerp(0.35f, be.posZ[ix][iy], targetZ);
                 }
+            }
+        }
+    }
+
+    public void handleRedstoneInput(Level level) {
+        if (!this.isAnchor) {
+            CurtainBlockEntity master = this.getMasterAnchor();
+            if (master != this) {
+                master.handleRedstoneInput(level);
+            }
+            return;
+        }
+
+        Direction facing = this.getBlockState().getValue(CurtainRodBlock.FACING);
+        Direction stepDir = this.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
+
+        int maxPower = 0;
+        for (int i = 0; i < this.span; i++) {
+            BlockPos checkPos = this.worldPosition.relative(stepDir, i);
+            int power = level.getBestNeighborSignal(checkPos);
+            if (power > maxPower) {
+                maxPower = power;
+            }
+        }
+
+        if (maxPower != this.lastRedstonePower) {
+            this.lastRedstonePower = maxPower;
+            if (maxPower > 0) {
+                // power of signal controls the speed, so power 15 gives 20 ticks to fully toggle while power 1 gives 48 ticks.
+                int speedTicks = Math.max(6, 50 - (maxPower * 2));
+                this.animateTo(1.0f, speedTicks);
+            } else {
+                this.animateTo(0.15f, 24);
             }
         }
     }
