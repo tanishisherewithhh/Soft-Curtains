@@ -1,37 +1,92 @@
 package com.tanishisherewith;
 
-import com.tanishisherewith.registry.CurtainBlocks;
+import com.tanishisherewith.block.CurtainRodBlock;
+import com.tanishisherewith.block.RodMaterial;
+import com.tanishisherewith.entity.CurtainBlockEntity;
+import com.tanishisherewith.network.CurtainDragPayload;
 import com.tanishisherewith.registry.CurtainsBlockEntities;
+import com.tanishisherewith.registry.CurtainsBlocks;
+import com.tanishisherewith.registry.CurtainsComponents;
+import com.tanishisherewith.registry.CurtainsItems;
 import net.fabricmc.api.ModInitializer;
-
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
-
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SoftCurtainsMain implements ModInitializer {
-	public static final String MOD_ID = "softcurtains";
+    public static final String MOD_ID = "softcurtains";
+    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    @Override
+    public void onInitialize() {
+        CurtainsBlocks.register();
+        CurtainsItems.register();
+        CurtainsComponents.register();
+        CurtainsBlockEntities.register();
 
-	@Override
-	public void onInitialize() {
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
+        PayloadTypeRegistry.serverboundPlay().register(CurtainDragPayload.TYPE, CurtainDragPayload.STREAM_CODEC);
 
-		//LOGGER.info("Soft Curtains loading");
-		CurtainBlocks.register();
-		CurtainsBlockEntities.register();
+        ServerPlayNetworking.registerGlobalReceiver(CurtainDragPayload.TYPE, (payload, context) ->
+                context.server().execute(() -> {
+                    Level level = context.player().level();
+                    BlockPos targetPos = payload.pos();
 
-		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
-			entries.accept(CurtainBlocks.CURTAIN_ROD_ITEM);
-		});
-	}
+                    if (!level.isLoaded(targetPos)) return;
 
-	public static Identifier id(String path) {
-		return Identifier.fromNamespaceAndPath(MOD_ID, path);
-	}
+                    BlockEntity rawBe = level.getBlockEntity(targetPos);
+                    if (rawBe instanceof CurtainBlockEntity initialBe) {
+                        CurtainBlockEntity anchorCurtain = initialBe.getMasterAnchor();
+                        BlockPos anchorPos = anchorCurtain.getBlockPos();
+                        BlockState anchorState = level.getBlockState(anchorPos);
+
+                        if (anchorState.getBlock() instanceof CurtainRodBlock) {
+                            Direction facing = anchorState.getValue(CurtainRodBlock.FACING);
+                            Direction stepDir = anchorCurtain.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
+                            int span = anchorCurtain.span;
+                            float globalProgress = Mth.clamp(payload.openProgress(), 0.15f, 1.0f);
+
+                            anchorCurtain.openProgress = globalProgress;
+                            anchorCurtain.setChanged();
+                            level.sendBlockUpdated(anchorPos, anchorState, anchorState, Block.UPDATE_CLIENTS);
+
+                            for (int i = 1; i < span; i++) {
+                                BlockPos slicePos = anchorPos.relative(stepDir, i);
+                                BlockEntity sliceBe = level.getBlockEntity(slicePos);
+                                BlockState sliceState = level.getBlockState(slicePos);
+
+                                if (sliceBe instanceof CurtainBlockEntity slice) {
+                                    slice.openProgress = globalProgress;
+                                    slice.setChanged();
+                                    level.sendBlockUpdated(slicePos, sliceState, sliceState, Block.UPDATE_CLIENTS);
+                                }
+                            }
+                        }
+                    }
+                }));
+
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
+            for (RodMaterial material : RodMaterial.values()) {
+                entries.accept(CurtainsItems.ROD_ITEMS.get(material));
+            }
+            for (Item curtainItem : CurtainsItems.CURTAINS.values()) {
+                entries.accept(curtainItem);
+            }
+        });
+    }
+
+    public static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
+    }
 }

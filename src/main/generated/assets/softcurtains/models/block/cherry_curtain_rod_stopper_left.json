@@ -1,0 +1,6 @@
+{
+  "parent": "softcurtains:block/curtain_rod_stopper_left",
+  "textures": {
+    "texture": "minecraft:block/cherry_planks"
+  }
+}

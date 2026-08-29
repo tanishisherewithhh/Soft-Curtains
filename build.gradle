@@ -11,6 +11,13 @@ repositories {
 	// for more information about repositories.
 }
 
+fabricApi {
+	configureDataGeneration {
+		client = true
+		strictValidation = false
+	}
+}
+
 loom {
 	splitEnvironmentSourceSets()
 
@@ -20,6 +27,27 @@ loom {
 			sourceSet sourceSets.client
 		}
 	}
+	runs {
+		datagen {
+			vmArg "-Dmixin.debug.verbose=true"
+			vmArg "-Dmixin.debug.export=true"
+		}
+	}
+}
+
+sourceSets {
+	main {
+		resources {
+			srcDirs += [
+					"src/main/generated"
+			]
+			exclude ".cache/**"
+		}
+	}
+}
+
+tasks.withType(ProcessResources).configureEach {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
 dependencies {

@@ -3,12 +3,17 @@
 	"package": "com.tanishisherewith.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
-		"ExampleClientMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
 	},
 	"overwrites": {
 		"requireAnnotations": true
-	}
+	},
+	"mixins": [
+		"BlockStateValidationMixin",
+		"BlockStateValidationMixin$BlockStateCollectorMixin",
+		"BlockStateValidationMixin$ItemInfoCollectorMixin",
+		"CustomModelProviderMixin"
+	]
 }

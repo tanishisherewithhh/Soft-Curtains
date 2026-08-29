@@ -1,0 +1,6 @@
+{
+  "parent": "softcurtains:block/curtain_rod_middle_support",
+  "textures": {
+    "texture": "minecraft:block/jungle_planks"
+  }
+}

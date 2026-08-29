@@ -1,0 +1,234 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_base"
+      },
+      "when": {
+        "facing": "north"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_base",
+        "y": 90
+      },
+      "when": {
+        "facing": "east"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_base",
+        "y": 180
+      },
+      "when": {
+        "facing": "south"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_base",
+        "y": 270
+      },
+      "when": {
+        "facing": "west"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_left"
+      },
+      "when": {
+        "type": "end_left",
+        "facing": "north"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_left"
+      },
+      "when": {
+        "type": "straight",
+        "facing": "north"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_left",
+        "y": 90
+      },
+      "when": {
+        "type": "end_left",
+        "facing": "east"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_left",
+        "y": 90
+      },
+      "when": {
+        "type": "straight",
+        "facing": "east"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_left",
+        "y": 180
+      },
+      "when": {
+        "type": "end_left",
+        "facing": "south"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_left",
+        "y": 180
+      },
+      "when": {
+        "type": "straight",
+        "facing": "south"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_left",
+        "y": 270
+      },
+      "when": {
+        "type": "end_left",
+        "facing": "west"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_left",
+        "y": 270
+      },
+      "when": {
+        "type": "straight",
+        "facing": "west"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_right"
+      },
+      "when": {
+        "type": "end_right",
+        "facing": "north"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_right"
+      },
+      "when": {
+        "type": "straight",
+        "facing": "north"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_right",
+        "y": 90
+      },
+      "when": {
+        "type": "end_right",
+        "facing": "east"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_right",
+        "y": 90
+      },
+      "when": {
+        "type": "straight",
+        "facing": "east"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_right",
+        "y": 180
+      },
+      "when": {
+        "type": "end_right",
+        "facing": "south"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_right",
+        "y": 180
+      },
+      "when": {
+        "type": "straight",
+        "facing": "south"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_right",
+        "y": 270
+      },
+      "when": {
+        "type": "end_right",
+        "facing": "west"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_stopper_right",
+        "y": 270
+      },
+      "when": {
+        "type": "straight",
+        "facing": "west"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_middle_support"
+      },
+      "when": {
+        "type": "middle_stopper",
+        "facing": "north"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_middle_support",
+        "y": 90
+      },
+      "when": {
+        "type": "middle_stopper",
+        "facing": "east"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_middle_support",
+        "y": 180
+      },
+      "when": {
+        "type": "middle_stopper",
+        "facing": "south"
+      }
+    },
+    {
+      "apply": {
+        "model": "softcurtains:block/birch_curtain_rod_middle_support",
+        "y": 270
+      },
+      "when": {
+        "type": "middle_stopper",
+        "facing": "west"
+      }
+    }
+  ]
+}

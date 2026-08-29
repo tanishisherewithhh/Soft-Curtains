@@ -20,10 +20,14 @@
 		],
 		"client": [
 			"com.tanishisherewith.client.SoftCurtainsClient"
+		],
+		"fabric-datagen": [
+			"com.tanishisherewith.client.data.SoftCurtainsDataGenerator"
 		]
 	},
 	"mixins": [
-		"softcurtains.mixins.json"
+		"softcurtains.mixins.json",
+		"softcurtains_client.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.19.3",
