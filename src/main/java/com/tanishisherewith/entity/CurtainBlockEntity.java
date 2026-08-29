@@ -9,13 +9,14 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.util.EasingType;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
@@ -25,9 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CurtainBlockEntity extends BlockEntity {
-    public static final int NODES_PER_BLOCK = 10;
-    public static final int GRID_H = 10;
-    public static final float STOPPER_MARGIN = 0.125f;
+    public static final int NODES_PER_BLOCK = 16;
+    public static final int GRID_H = 14;
+    public static final float STOPPER_MARGIN = 0.15625f;
+    public static final float CURTAIN_TOP_Y = 0.8125f;
 
     public DyeColor color = DyeColor.WHITE;
     public final List<DyeColor> segmentColors = new ArrayList<>();
@@ -37,8 +39,17 @@ public class CurtainBlockEntity extends BlockEntity {
     public BlockPos anchorPos = null;
 
     public int length = 1;
+
+    // Progress values: 0.15f (Closed) to 1.0f (Open)
     public float openProgress = 1.0f;
     public float prevOpenProgress = 1.0f;
+    public float targetOpenProgress = 1.0f;
+
+    public boolean isAnimating = false;
+    public float animStartProgress = 1.0f;
+    public float animTargetProgress = 1.0f;
+    public int animCurrentTick = 0;
+    public int animTotalTicks = 24;
 
     public float[][] posX;
     public float[][] posY;
@@ -48,10 +59,31 @@ public class CurtainBlockEntity extends BlockEntity {
     public float[][] prevZ;
 
     public float swayVelocityX = 0.0f;
+    public float swayVelocityZ = 0.0f;
     private int allocatedW = 0;
 
     public CurtainBlockEntity(BlockPos pos, BlockState state) {
         super(CurtainsBlockEntities.CURTAIN, pos, state);
+    }
+
+    public void animateTo(float target, int durationTicks) {
+        CurtainBlockEntity master = this.getMasterAnchor();
+        if (master != this) {
+            master.animateTo(target, durationTicks);
+            return;
+        }
+
+        this.animStartProgress = this.openProgress;
+        this.animTargetProgress = Mth.clamp(target, 0.15f, 1.0f);
+        this.targetOpenProgress = this.animTargetProgress;
+        this.animTotalTicks = Math.max(1, durationTicks);
+        this.animCurrentTick = 0;
+        this.isAnimating = true;
+
+        this.setChanged();
+        if (this.level != null) {
+            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
+        }
     }
 
     public void setupAsAnchor(DyeColor newColor, int span, boolean expandRight, Direction facing) {
@@ -65,12 +97,15 @@ public class CurtainBlockEntity extends BlockEntity {
         this.segmentColors.add(this.color);
         this.openProgress = 1.0f;
         this.prevOpenProgress = 1.0f;
+        this.targetOpenProgress = 1.0f;
+        this.isAnimating = false;
         this.swayVelocityX = 0.0f;
+        this.swayVelocityZ = 0.0f;
         this.ensureGrid();
         this.resetGrid();
         this.setChanged();
         if (this.level != null) {
-            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
+            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
         }
     }
 
@@ -80,7 +115,7 @@ public class CurtainBlockEntity extends BlockEntity {
         this.span = 1;
         this.setChanged();
         if (this.level != null) {
-            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
+            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
         }
     }
 
@@ -90,21 +125,17 @@ public class CurtainBlockEntity extends BlockEntity {
         }
 
         if (this.level != null) {
-            if (this.anchorPos != null) {
-                BlockEntity be = this.level.getBlockEntity(this.anchorPos);
-                if (be instanceof CurtainBlockEntity master && master.isAnchor) {
-                    return master;
-                }
+            BlockEntity be = this.level.getBlockEntity(this.anchorPos);
+            if (be instanceof CurtainBlockEntity master && master.isAnchor) {
+                return master;
             }
 
-            // Fallback track search along rod directions
             BlockState state = this.getBlockState();
             if (state.getBlock() instanceof CurtainRodBlock) {
                 Direction facing = state.getValue(CurtainRodBlock.FACING);
                 for (Direction checkDir : new Direction[]{facing.getClockWise(), facing.getCounterClockWise()}) {
                     for (int i = 1; i <= 16; i++) {
                         BlockPos checkPos = this.worldPosition.relative(checkDir, i);
-                        BlockEntity be = this.level.getBlockEntity(checkPos);
                         if (be instanceof CurtainBlockEntity target && target.isAnchor) {
                             this.anchorPos = checkPos;
                             return target;
@@ -128,7 +159,7 @@ public class CurtainBlockEntity extends BlockEntity {
         this.resetGrid();
         this.setChanged();
         if (this.level != null) {
-            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
+            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
         }
     }
 
@@ -144,7 +175,7 @@ public class CurtainBlockEntity extends BlockEntity {
             this.resetGrid();
             this.setChanged();
             if (this.level != null) {
-                this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
+                this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
             }
             return removed;
         }
@@ -164,7 +195,7 @@ public class CurtainBlockEntity extends BlockEntity {
         }
         this.setChanged();
         if (this.level != null) {
-            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
+            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
         }
     }
 
@@ -175,11 +206,8 @@ public class CurtainBlockEntity extends BlockEntity {
             return;
         }
 
-        this.openProgress = (this.openProgress > 0.5f) ? 0.15f : 1.0f;
-        this.setChanged();
-        if (this.level != null) {
-            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), 3);
-        }
+        float nextTarget = (this.targetOpenProgress > 0.5f) ? 0.15f : 1.0f;
+        this.animateTo(nextTarget, 30);
     }
 
     public void ensureGrid() {
@@ -197,47 +225,60 @@ public class CurtainBlockEntity extends BlockEntity {
         }
     }
 
-    private float getLeftMargin() {
-        if (this.level == null) return 0.0f;
-        BlockState state = this.getBlockState();
+    private float getLeftMargin(BlockPos pos, BlockState state) {
         if (!(state.getBlock() instanceof CurtainRodBlock)) return 0.0f;
         CurtainRodType type = state.getValue(CurtainRodBlock.ROD_TYPE);
         return (type == CurtainRodType.STRAIGHT || type == CurtainRodType.END_LEFT) ? STOPPER_MARGIN : 0.0f;
     }
 
-    private float getRightMargin() {
-        if (this.level == null) return 0.0f;
-        BlockState state = this.getBlockState();
+    private float getRightMargin(BlockPos pos, BlockState state) {
         if (!(state.getBlock() instanceof CurtainRodBlock)) return 0.0f;
         CurtainRodType type = state.getValue(CurtainRodBlock.ROD_TYPE);
         return (type == CurtainRodType.STRAIGHT || type == CurtainRodType.END_RIGHT) ? STOPPER_MARGIN : 0.0f;
     }
 
     public void resetGrid() {
-        if (!this.isAnchor || this.posX == null) return;
+        if (!this.isAnchor || this.posX == null || this.level == null) return;
         int gw = this.allocatedW;
         float height = (float) this.length;
 
-        float leftMargin = this.getLeftMargin();
-        float rightMargin = this.getRightMargin();
+        Direction facing = this.getBlockState().getValue(CurtainRodBlock.FACING);
+        Direction stepDir = this.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
 
-        float totalSpanWidth = Math.max(0.01f, (float) this.span - leftMargin - rightMargin);
-        float currentWidth = totalSpanWidth * this.openProgress;
-        float foldDepth = 0.025f * this.openProgress;
+        BlockPos anchorBlockPos = this.worldPosition;
+        BlockState anchorBlockState = this.getBlockState();
 
-        float startX = this.expandRight ? leftMargin : (1.0f - rightMargin);
+        BlockPos endBlockPos = this.worldPosition.relative(stepDir, this.span - 1);
+        BlockState endBlockState = this.level.getBlockState(endBlockPos);
+
+        float startX;
+        float endTargetX;
+
+        if (this.expandRight) {
+            float leftM = this.getLeftMargin(anchorBlockPos, anchorBlockState);
+            float rightM = this.getRightMargin(endBlockPos, endBlockState);
+            startX = leftM;
+            endTargetX = (float) this.span - rightM;
+        } else {
+            float rightM = this.getRightMargin(anchorBlockPos, anchorBlockState);
+            float leftM = this.getLeftMargin(endBlockPos, endBlockState);
+            startX = 1.0f - rightM;
+            endTargetX = leftM - (float) (this.span - 1);
+        }
+
+        float totalTravel = endTargetX - startX;
+        float currentTravel = totalTravel * this.openProgress;
+        float compressionFactor = 1.0f - this.openProgress;
+        float foldDepth = 0.02f + compressionFactor * 0.05f;
 
         for (int ix = 0; ix < gw; ix++) {
             float u = (float) ix / (gw - 1);
-            float x = this.expandRight
-                    ? (startX + (u * currentWidth))
-                    : (startX - (u * currentWidth));
-
-            float z = (float) Math.sin(u * this.span * 4.0 * Math.PI) * foldDepth;
+            float x = startX + (u * currentTravel);
+            float z = (float) Math.sin(u * this.span * (3.0 + compressionFactor * 3.0) * Math.PI) * foldDepth;
 
             for (int iy = 0; iy < GRID_H; iy++) {
                 float v = (float) iy / (GRID_H - 1);
-                float y = 0.85f - (v * height);
+                float y = CURTAIN_TOP_Y - (v * height);
 
                 this.posX[ix][iy] = this.prevX[ix][iy] = x;
                 this.posY[ix][iy] = this.prevY[ix][iy] = y;
@@ -246,80 +287,92 @@ public class CurtainBlockEntity extends BlockEntity {
         }
     }
 
-    public static void clientTick(Level level, BlockPos pos, BlockState state, CurtainBlockEntity be) {
+    public static void tick(Level level, BlockPos pos, BlockState state, CurtainBlockEntity be) {
         if (!state.getValue(CurtainRodBlock.HAS_CURTAIN) || !be.isAnchor) return;
 
-        Direction facing = state.getValue(CurtainRodBlock.FACING);
-        Direction stepDir = be.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
-        int activeSpan = 1;
+        be.prevOpenProgress = be.openProgress;
 
-        for (int i = 1; i < be.span; i++) {
-            BlockPos nextPos = pos.relative(stepDir, i);
-            BlockState nextState = level.getBlockState(nextPos);
-            if (nextState.getBlock() instanceof CurtainRodBlock &&
-                    nextState.getValue(CurtainRodBlock.FACING) == facing &&
-                    nextState.getValue(CurtainRodBlock.HAS_CURTAIN)) {
-                activeSpan++;
-            } else {
-                break;
+        if (be.isAnimating) {
+            be.animCurrentTick++;
+            float t = (float) be.animCurrentTick / (float) be.animTotalTicks;
+            t = Mth.clamp(t, 0.0f, 1.0f);
+            be.openProgress = Mth.lerp(EasingType.IN_OUT_QUAD.apply(t), be.animStartProgress, be.animTargetProgress);
+
+            if (be.animCurrentTick >= be.animTotalTicks) {
+                be.openProgress = be.animTargetProgress;
+                be.isAnimating = false;
+                be.setChanged();
             }
         }
 
-        if (be.span != activeSpan) {
-            be.span = activeSpan;
-            be.allocatedW = 0;
-            be.ensureGrid();
-            be.resetGrid();
-        }
+        if (level.isClientSide()) {
+            Direction facing = state.getValue(CurtainRodBlock.FACING);
+            Direction stepDir = be.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
 
-        be.ensureGrid();
+            BlockPos anchorBlockPos = be.worldPosition;
+            BlockState anchorBlockState = be.getBlockState();
 
-        int gw = be.allocatedW;
-        float height = (float) be.length;
+            BlockPos endBlockPos = be.worldPosition.relative(stepDir, be.span - 1);
+            BlockState endBlockState = level.getBlockState(endBlockPos);
 
-        float leftMargin = be.getLeftMargin();
-        float rightMargin = be.getRightMargin();
+            float startX;
+            float endTargetX;
 
-        float totalSpanWidth = Math.max(0.01f, (float) be.span - leftMargin - rightMargin);
-        float currentWidth = totalSpanWidth * be.openProgress;
-        float foldDepth = 0.025f * be.openProgress;
+            if (be.expandRight) {
+                float leftM = be.getLeftMargin(anchorBlockPos, anchorBlockState);
+                float rightM = be.getRightMargin(endBlockPos, endBlockState);
+                startX = leftM;
+                endTargetX = (float) be.span - rightM;
+            } else {
+                float rightM = be.getRightMargin(anchorBlockPos, anchorBlockState);
+                float leftM = be.getLeftMargin(endBlockPos, endBlockState);
+                startX = 1.0f - rightM;
+                endTargetX = leftM - (float) (be.span - 1);
+            }
 
-        float dragVelocity = (be.openProgress - be.prevOpenProgress) * totalSpanWidth;
-        be.prevOpenProgress = be.openProgress;
+            float totalTravel = endTargetX - startX;
+            float currentTravel = totalTravel * be.openProgress;
 
-        be.swayVelocityX += dragVelocity * 0.45f;
-        be.swayVelocityX *= 0.82f;
+            float compression = 1.0f - be.openProgress;
+            float foldDepth = 0.02f + compression * 0.05f;
 
-        float startX = be.expandRight ? leftMargin : (1.0f - rightMargin);
+            float dragVelocity = (be.openProgress - be.prevOpenProgress) * Math.abs(totalTravel);
+            be.swayVelocityX = (be.swayVelocityX + dragVelocity * 0.35f) * 0.80f;
+            be.swayVelocityZ = (be.swayVelocityZ + Math.abs(dragVelocity) * 0.20f * (float) Math.sin(be.openProgress * Math.PI)) * 0.80f;
 
-        for (int ix = 0; ix < gw; ix++) {
-            float u = (float) ix / (gw - 1);
-            float columnTargetX = be.expandRight
-                    ? (startX + (u * currentWidth))
-                    : (startX - (u * currentWidth));
+            int gw = be.allocatedW;
+            float height = (float) be.length;
 
-            float targetZ = (float) Math.sin(u * be.span * 4.0 * Math.PI) * foldDepth;
+            for (int ix = 0; ix < gw; ix++) {
+                float u = (float) ix / (gw - 1);
+                float columnBaseX = startX + (u * currentTravel);
 
-            for (int iy = 0; iy < GRID_H; iy++) {
-                float v = (float) iy / (GRID_H - 1);
-                float targetY = 0.85f - (v * height);
+                float foldPhase = u * be.span * (3.0f + compression * 3.0f) * (float) Math.PI;
+                float baseZ = (float) Math.sin(foldPhase) * foldDepth;
 
-                be.prevX[ix][iy] = be.posX[ix][iy];
-                be.prevY[ix][iy] = be.posY[ix][iy];
-                be.prevZ[ix][iy] = be.posZ[ix][iy];
+                for (int iy = 0; iy < GRID_H; iy++) {
+                    float v = (float) iy / (GRID_H - 1);
+                    float targetY = CURTAIN_TOP_Y - (v * height);
 
-                float swayAmount = be.expandRight ? (-be.swayVelocityX * v * 0.85f) : (be.swayVelocityX * v * 0.85f);
-                float targetX = columnTargetX + swayAmount;
+                    be.prevX[ix][iy] = be.posX[ix][iy];
+                    be.prevY[ix][iy] = be.posY[ix][iy];
+                    be.prevZ[ix][iy] = be.posZ[ix][iy];
 
-                be.posX[ix][iy] = Mth.lerp(0.35f, be.posX[ix][iy], targetX);
-                be.posY[ix][iy] = targetY;
-                be.posZ[ix][iy] = targetZ;
+                    float bend = v * v;
+                    float swayOffset = be.expandRight ? (-be.swayVelocityX * bend * 0.70f) : (be.swayVelocityX * bend * 0.70f);
+                    float targetX = columnBaseX + swayOffset;
+                    float targetZ = baseZ + (be.swayVelocityZ * (float) Math.sin(v * Math.PI) * 0.35f);
+
+                    be.posX[ix][iy] = targetX;
+                    be.posY[ix][iy] = targetY;
+                    be.posZ[ix][iy] = targetZ;
+                }
             }
         }
     }
 
     public float getMeshX(int ix, int iy, float tickDelta) {
-        if (posX == null || posX.length == 0) return ix / (float) (span * 10) * span;
+        if (posX == null || posX.length == 0) return ix / (float) (span * NODES_PER_BLOCK) * span;
         int clampedX = Mth.clamp(ix, 0, posX.length - 1);
         int clampedY = Mth.clamp(iy, 0, GRID_H - 1);
         return Mth.lerp(tickDelta, prevX[clampedX][clampedY], posX[clampedX][clampedY]);
@@ -356,6 +409,13 @@ public class CurtainBlockEntity extends BlockEntity {
         tag.putBoolean("ExpandRight", this.expandRight);
         tag.putInt("Length", this.length);
         tag.putFloat("OpenProgress", this.openProgress);
+        tag.putFloat("TargetOpenProgress", this.targetOpenProgress);
+
+        tag.putBoolean("IsAnimating", this.isAnimating);
+        tag.putFloat("AnimStartProgress", this.animStartProgress);
+        tag.putFloat("AnimTargetProgress", this.animTargetProgress);
+        tag.putInt("AnimCurrentTick", this.animCurrentTick);
+        tag.putInt("AnimTotalTicks", this.animTotalTicks);
 
         ListTag segList = new ListTag();
         for (DyeColor c : this.getSegmentColors()) {
@@ -376,6 +436,13 @@ public class CurtainBlockEntity extends BlockEntity {
         output.putBoolean("ExpandRight", this.expandRight);
         output.putInt("Length", this.length);
         output.putFloat("OpenProgress", this.openProgress);
+        output.putFloat("TargetOpenProgress", this.targetOpenProgress);
+
+        output.putBoolean("IsAnimating", this.isAnimating);
+        output.putFloat("AnimStartProgress", this.animStartProgress);
+        output.putFloat("AnimTargetProgress", this.animTargetProgress);
+        output.putInt("AnimCurrentTick", this.animCurrentTick);
+        output.putInt("AnimTotalTicks", this.animTotalTicks);
 
         output.store("Segments", DyeColor.CODEC.listOf(), this.getSegmentColors());
     }
@@ -391,8 +458,22 @@ public class CurtainBlockEntity extends BlockEntity {
         this.span = Math.max(1, input.getIntOr("Span", 1));
         this.expandRight = input.getBooleanOr("ExpandRight", true);
         this.length = Math.max(1, input.getIntOr("Length", 1));
-        this.openProgress = input.getFloatOr("OpenProgress", 1.0f);
-        this.prevOpenProgress = this.openProgress;
+
+        boolean newAnimating = input.getBooleanOr("IsAnimating", false);
+        float newTarget = input.getFloatOr("TargetOpenProgress", 1.0f);
+
+        if (newAnimating && (!this.isAnimating || this.targetOpenProgress != newTarget)) {
+            this.isAnimating = true;
+            this.animStartProgress = input.getFloatOr("AnimStartProgress", this.openProgress);
+            this.animTargetProgress = input.getFloatOr("AnimTargetProgress", newTarget);
+            this.animCurrentTick = input.getIntOr("AnimCurrentTick", 0);
+            this.animTotalTicks = input.getIntOr("AnimTotalTicks", 24);
+            this.targetOpenProgress = newTarget;
+        } else if (!newAnimating && !this.isAnimating) {
+            this.openProgress = input.getFloatOr("OpenProgress", 1.0f);
+            this.targetOpenProgress = newTarget;
+            this.prevOpenProgress = this.openProgress;
+        }
 
         this.segmentColors.clear();
         input.read("Segments", DyeColor.CODEC.listOf()).ifPresentOrElse(
@@ -434,5 +515,7 @@ public class CurtainBlockEntity extends BlockEntity {
     public float getOpenProgress() { return openProgress; }
     public void setOpenProgress(float openProgress) {
         this.openProgress = openProgress;
+        this.targetOpenProgress = openProgress;
+        this.isAnimating = false;
     }
 }

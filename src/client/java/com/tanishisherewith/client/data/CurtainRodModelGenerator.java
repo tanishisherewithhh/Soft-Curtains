@@ -48,7 +48,7 @@ public class CurtainRodModelGenerator {
         Identifier right = STOPPER_RIGHT.createWithSuffix(rodBlock, "_stopper_right", textures, generator.modelOutput);
         Identifier middle = MIDDLE_SUPPORT.createWithSuffix(rodBlock, "_middle_support", textures, generator.modelOutput);
 
-        // Generates softcurtains:models/block/<material>_curtain_rod_inventory
+
         ROD_INVENTORY.createWithSuffix(rodBlock, "_inventory", textures, generator.modelOutput);
 
         MultiPartGenerator multiPart = MultiPartGenerator.multiPart(rodBlock);

@@ -135,7 +135,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
             return InteractionResult.PASS;
         }
 
-        // 1. Shift-Click empty hand to cycle rod shape
+        //Shift-Click empty hand to cycle rod shape
         if (stack.isEmpty() && player.isShiftKeyDown() && !state.getValue(HAS_CURTAIN)) {
             if (!level.isClientSide()) {
                 CurtainRodType nextType = switch (state.getValue(ROD_TYPE)) {
@@ -153,12 +153,9 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
 
         BlockEntity be = level.getBlockEntity(pos);
 
-        // 2. Installed Curtain Interactions across any spanned rod
         if (state.getValue(HAS_CURTAIN) && be instanceof CurtainBlockEntity targetBe) {
             CurtainBlockEntity master = targetBe.getMasterAnchor();
             BlockPos masterPos = master.getBlockPos();
-
-            // Dye Curtain
             if (stack.getItem() instanceof DyeItem) {
                 DyeColor newColor = stack.get(DataComponents.DYE);
                 if (newColor != null && master.getColor() != newColor) {
@@ -175,7 +172,6 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                 return InteractionResult.CONSUME;
             }
 
-            // Shear / Trim Segment
             if (stack.is(Items.SHEARS)) {
                 if (master.getLength() > 1) {
                     if (!level.isClientSide()) {
@@ -193,7 +189,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                 return InteractionResult.CONSUME;
             }
 
-            // Append Wool Segment
+
             if (stack.is(ItemTags.WOOL)) {
                 if (master.getLength() < 8) {
                     if (!level.isClientSide()) {
@@ -210,7 +206,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                 return InteractionResult.CONSUME;
             }
 
-            // Shift-Click Toggle Open/Close
+            // Shift-Click direct Open/Close
             if (player.isShiftKeyDown()) {
                 if (!level.isClientSide()) {
                     master.toggle();
@@ -220,7 +216,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
             return InteractionResult.SUCCESS;
         }
 
-        // 3. Install or Connect Curtain
+
         if (stack.getItem() instanceof CurtainItem curtainItem && !state.getValue(HAS_CURTAIN)) {
             if (!level.isClientSide()) {
                 Direction facing = state.getValue(FACING);
@@ -268,7 +264,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                     }
                 }
 
-                // Place new curtain with the item's specific DyeColor
+
                 boolean expandRight = hitAlongRod < 0.0;
                 level.setBlock(pos, state.setValue(HAS_CURTAIN, true), Block.UPDATE_ALL);
                 BlockEntity newBe = level.getBlockEntity(pos);
@@ -381,8 +377,8 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        return level.isClientSide() && type == CurtainsBlockEntities.CURTAIN
-                ? (lvl, p, s, be) -> CurtainBlockEntity.clientTick(lvl, p, s, (CurtainBlockEntity) be)
+        return type == CurtainsBlockEntities.CURTAIN
+                ? (lvl, p, s, be) -> CurtainBlockEntity.tick(lvl, p, s, (CurtainBlockEntity) be)
                 : null;
     }
 }

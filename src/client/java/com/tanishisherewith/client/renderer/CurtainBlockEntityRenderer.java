@@ -46,7 +46,7 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
 
         be.ensureGrid();
 
-        int w = be.getSpan() * 10 + 1;
+        int w = be.getSpan() * CurtainBlockEntity.NODES_PER_BLOCK + 1;
         int h = CurtainBlockEntity.GRID_H;
 
         if (state.meshX == null || state.meshX.length != w) {
@@ -103,7 +103,7 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             int packedOverlay = OverlayTexture.NO_OVERLAY;
             int numSegments = Math.max(1, state.segmentColors.size());
 
-            // 1. Front and Back Faces
+
             for (int ix = 0; ix < w - 1; ix++) {
                 for (int iy = 0; iy < h - 1; iy++) {
                     float x0 = state.meshX[ix][iy];
@@ -132,7 +132,7 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                         nx = 0.0f; ny = 0.0f; nz = 1.0f;
                     }
 
-                    // Normalized vertical progression from 0.0 (top) to 1.0 (bottom)
+
                     float vTop = (float) iy / (h - 1);
                     float vBot = (float) (iy + 1) / (h - 1);
 
@@ -173,11 +173,11 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                 }
             }
 
-            // 2. Top Edge Cap
-            int topColor = state.segmentColors.get(0);
-            float topR = ((topColor >> 16 & 255) / 255.0F) * 0.90f;
-            float topG = ((topColor >> 8 & 255) / 255.0F) * 0.90f;
-            float topB = ((topColor & 255) / 255.0F) * 0.90f;
+            // Top Edge face
+            int topEdgeColor = state.segmentColors.get(0);
+            float topR = ((topEdgeColor >> 16 & 255) / 255.0F) * 0.90f;
+            float topG = ((topEdgeColor >> 8 & 255) / 255.0F) * 0.90f;
+            float topB = ((topEdgeColor & 255) / 255.0F) * 0.90f;
 
             for (int ix = 0; ix < w - 1; ix++) {
                 float x0 = state.meshX[ix][0];
@@ -193,12 +193,12 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                 buffer.addVertex(matrix, x0, y0, z0 + BASE_THICKNESS).setColor(topR, topG, topB, 1.0f).setUv(0.0f, 0.1f).setOverlay(packedOverlay).setLight(packedLight).setNormal(0, 1, 0);
             }
 
-            // 3. Bottom Edge Hem
+            // Bottom Edge face
             int bottom = h - 1;
-            int botColor = state.segmentColors.getLast();
-            float botR = ((botColor >> 16 & 255) / 255.0F) * 0.75f;
-            float botG = ((botColor >> 8 & 255) / 255.0F) * 0.75f;
-            float botB = ((botColor & 255) / 255.0F) * 0.75f;
+            int bottomEdgeColor = state.segmentColors.getLast();
+            float botR = ((bottomEdgeColor >> 16 & 255) / 255.0F) * 0.75f;
+            float botG = ((bottomEdgeColor >> 8 & 255) / 255.0F) * 0.75f;
+            float botB = ((bottomEdgeColor & 255) / 255.0F) * 0.75f;
 
             for (int ix = 0; ix < w - 1; ix++) {
                 float x0 = state.meshX[ix][bottom];
@@ -214,14 +214,22 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                 buffer.addVertex(matrix, x0, y0, z0 - BASE_THICKNESS).setColor(botR, botG, botB, 1.0f).setUv(0.0f, 1.0f).setOverlay(packedOverlay).setLight(packedLight).setNormal(0, -1, 0);
             }
 
-            // 4. Left Side Edge Cap (ix = 0)
+            //Left edge face
             for (int iy = 0; iy < h - 1; iy++) {
-                float v = (float) iy / (h - 1);
-                int segIdx = Mth.clamp((int) (v * numSegments), 0, numSegments - 1);
-                int c = state.segmentColors.get(segIdx);
-                float sR = ((c >> 16 & 255) / 255.0F) * 0.80f;
-                float sG = ((c >> 8 & 255) / 255.0F) * 0.80f;
-                float sB = ((c & 255) / 255.0F) * 0.80f;
+                float vTop = (float) iy / (h - 1);
+                float vBot = (float) (iy + 1) / (h - 1);
+
+                int topSegIdx = Mth.clamp((int) (vTop * numSegments), 0, numSegments - 1);
+                int topColor = state.segmentColors.get(topSegIdx);
+                float tR = (((topColor >> 16) & 0xFF) / 255.0F) * 0.80f;
+                float tG = (((topColor >> 8) & 0xFF) / 255.0F) * 0.80f;
+                float tB = ((topColor & 0xFF) / 255.0F) * 0.80f;
+
+                int botSegIdx = Mth.clamp((int) (vBot * numSegments), 0, numSegments - 1);
+                int botColor = state.segmentColors.get(botSegIdx);
+                float bR = (((botColor >> 16) & 0xFF) / 255.0F) * 0.80f;
+                float bG = (((botColor >> 8) & 0xFF) / 255.0F) * 0.80f;
+                float bB = ((botColor & 0xFF) / 255.0F) * 0.80f;
 
                 float x0 = state.meshX[0][iy];
                 float y0 = state.meshY[0][iy];
@@ -230,21 +238,32 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                 float y1 = state.meshY[0][iy + 1];
                 float z1 = ROD_Z + state.meshZ[0][iy + 1];
 
-                buffer.addVertex(matrix, x0, y0, z0 - BASE_THICKNESS).setColor(sR, sG, sB, 1.0f).setUv(0.0f, 0.0f).setOverlay(packedOverlay).setLight(packedLight).setNormal(-1, 0, 0);
-                buffer.addVertex(matrix, x0, y0, z0 + BASE_THICKNESS).setColor(sR, sG, sB, 1.0f).setUv(0.1f, 0.0f).setOverlay(packedOverlay).setLight(packedLight).setNormal(-1, 0, 0);
-                buffer.addVertex(matrix, x1, y1, z1 + BASE_THICKNESS).setColor(sR, sG, sB, 1.0f).setUv(0.1f, 1.0f).setOverlay(packedOverlay).setLight(packedLight).setNormal(-1, 0, 0);
-                buffer.addVertex(matrix, x1, y1, z1 - BASE_THICKNESS).setColor(sR, sG, sB, 1.0f).setUv(0.0f, 1.0f).setOverlay(packedOverlay).setLight(packedLight).setNormal(-1, 0, 0);
+                float v0 = vTop * (float) state.length;
+                float v1 = vBot * (float) state.length;
+
+                buffer.addVertex(matrix, x0, y0, z0 - BASE_THICKNESS).setColor(tR, tG, tB, 1.0f).setUv(0.0f, v0).setOverlay(packedOverlay).setLight(packedLight).setNormal(-1, 0, 0);
+                buffer.addVertex(matrix, x0, y0, z0 + BASE_THICKNESS).setColor(tR, tG, tB, 1.0f).setUv(0.1f, v0).setOverlay(packedOverlay).setLight(packedLight).setNormal(-1, 0, 0);
+                buffer.addVertex(matrix, x1, y1, z1 + BASE_THICKNESS).setColor(bR, bG, bB, 1.0f).setUv(0.1f, v1).setOverlay(packedOverlay).setLight(packedLight).setNormal(-1, 0, 0);
+                buffer.addVertex(matrix, x1, y1, z1 - BASE_THICKNESS).setColor(bR, bG, bB, 1.0f).setUv(0.0f, v1).setOverlay(packedOverlay).setLight(packedLight).setNormal(-1, 0, 0);
             }
 
-            // 5. Right Side Edge Cap (ix = w - 1)
+            // right edge face
             int lastX = w - 1;
             for (int iy = 0; iy < h - 1; iy++) {
-                float v = (float) iy / (h - 1);
-                int segIdx = Mth.clamp((int) (v * numSegments), 0, numSegments - 1);
-                int c = state.segmentColors.get(segIdx);
-                float sR = ((c >> 16 & 255) / 255.0F) * 0.80f;
-                float sG = ((c >> 8 & 255) / 255.0F) * 0.80f;
-                float sB = ((c & 255) / 255.0F) * 0.80f;
+                float vTop = (float) iy / (h - 1);
+                float vBot = (float) (iy + 1) / (h - 1);
+
+                int topSegIdx = Mth.clamp((int) (vTop * numSegments), 0, numSegments - 1);
+                int topColor = state.segmentColors.get(topSegIdx);
+                float tR = (((topColor >> 16) & 0xFF) / 255.0F) * 0.80f;
+                float tG = (((topColor >> 8) & 0xFF) / 255.0F) * 0.80f;
+                float tB = ((topColor & 0xFF) / 255.0F) * 0.80f;
+
+                int botSegIdx = Mth.clamp((int) (vBot * numSegments), 0, numSegments - 1);
+                int botColor = state.segmentColors.get(botSegIdx);
+                float bR = (((botColor >> 16) & 0xFF) / 255.0F) * 0.80f;
+                float bG = (((botColor >> 8) & 0xFF) / 255.0F) * 0.80f;
+                float bB = ((botColor & 0xFF) / 255.0F) * 0.80f;
 
                 float x0 = state.meshX[lastX][iy];
                 float y0 = state.meshY[lastX][iy];
@@ -253,10 +272,13 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                 float y1 = state.meshY[lastX][iy + 1];
                 float z1 = ROD_Z + state.meshZ[lastX][iy + 1];
 
-                buffer.addVertex(matrix, x0, y0, z0 + BASE_THICKNESS).setColor(sR, sG, sB, 1.0f).setUv(0.0f, 0.0f).setOverlay(packedOverlay).setLight(packedLight).setNormal(1, 0, 0);
-                buffer.addVertex(matrix, x0, y0, z0 - BASE_THICKNESS).setColor(sR, sG, sB, 1.0f).setUv(0.1f, 0.0f).setOverlay(packedOverlay).setLight(packedLight).setNormal(1, 0, 0);
-                buffer.addVertex(matrix, x1, y1, z1 - BASE_THICKNESS).setColor(sR, sG, sB, 1.0f).setUv(0.1f, 1.0f).setOverlay(packedOverlay).setLight(packedLight).setNormal(1, 0, 0);
-                buffer.addVertex(matrix, x1, y1, z1 + BASE_THICKNESS).setColor(sR, sG, sB, 1.0f).setUv(0.0f, 1.0f).setOverlay(packedOverlay).setLight(packedLight).setNormal(1, 0, 0);
+                float v0 = vTop * (float) state.length;
+                float v1 = vBot * (float) state.length;
+
+                buffer.addVertex(matrix, x0, y0, z0 + BASE_THICKNESS).setColor(tR, tG, tB, 1.0f).setUv(0.0f, v0).setOverlay(packedOverlay).setLight(packedLight).setNormal(1, 0, 0);
+                buffer.addVertex(matrix, x0, y0, z0 - BASE_THICKNESS).setColor(tR, tG, tB, 1.0f).setUv(0.1f, v0).setOverlay(packedOverlay).setLight(packedLight).setNormal(1, 0, 0);
+                buffer.addVertex(matrix, x1, y1, z1 - BASE_THICKNESS).setColor(bR, bG, bB, 1.0f).setUv(0.1f, v1).setOverlay(packedOverlay).setLight(packedLight).setNormal(1, 0, 0);
+                buffer.addVertex(matrix, x1, y1, z1 + BASE_THICKNESS).setColor(bR, bG, bB, 1.0f).setUv(0.0f, v1).setOverlay(packedOverlay).setLight(packedLight).setNormal(1, 0, 0);
             }
         });
 

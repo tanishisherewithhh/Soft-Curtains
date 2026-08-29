@@ -28,7 +28,7 @@ public class CurtainDragController {
     private static boolean isDragging = false;
     private static double lockedDragSign = 1.0;
 
-    private static final double BASE_SENSITIVITY = 0.007;
+    private static final double DRAG_SENSITIVITY = 0.005;
 
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(CurtainDragController::onClientTick);
@@ -55,7 +55,6 @@ public class CurtainDragController {
         boolean isHoldingUse = client.options.keyUse.isDown();
         double currentMouseX = client.mouseHandler.xpos();
 
-        // 1. Initial Click: Only drag when hand is empty
         ItemStack mainHand = client.player.getItemInHand(InteractionHand.MAIN_HAND);
         boolean isToolOrModifier = mainHand.is(Items.SHEARS) || mainHand.is(ItemTags.WOOL) || mainHand.getItem() instanceof DyeItem;
 
@@ -74,6 +73,7 @@ public class CurtainDragController {
                         draggingMasterPos = masterPos;
                         lastMouseX = currentMouseX;
                         isDragging = true;
+                        masterCurtain.isAnimating = false;
 
                         BlockState masterState = client.level.getBlockState(masterPos);
                         Direction masterFacing = masterState.getValue(CurtainRodBlock.FACING);
@@ -84,13 +84,11 @@ public class CurtainDragController {
             }
         }
 
-        // 2. Release Drag
         if (!isHoldingUse && draggingMasterPos != null) {
             stopDragging();
             return;
         }
 
-        // 3. Continuous Direct Drag
         if (isDragging && draggingMasterPos != null) {
             BlockEntity be = client.level.getBlockEntity(draggingMasterPos);
             if (!(be instanceof CurtainBlockEntity curtain)) {
@@ -98,15 +96,18 @@ public class CurtainDragController {
                 return;
             }
 
-            double deltaPixels = currentMouseX - lastMouseX;
+            double rawDelta = currentMouseX - lastMouseX;
             lastMouseX = currentMouseX;
 
-            if (Math.abs(deltaPixels) > 0.05) {
-                double deltaProgress = deltaPixels * BASE_SENSITIVITY * lockedDragSign;
+            if (Math.abs(rawDelta) > 0.05) {
+                double deltaProgress = rawDelta * DRAG_SENSITIVITY * lockedDragSign;
+
                 float newProgress = Mth.clamp((float) (curtain.openProgress + deltaProgress), 0.15f, 1.0f);
 
                 if (Math.abs(newProgress - curtain.openProgress) > 0.0001f) {
                     curtain.openProgress = newProgress;
+                    curtain.targetOpenProgress = newProgress;
+                    curtain.isAnimating = false;
 
                     if (client.player.tickCount - lastSentTick >= 2) {
                         lastSentTick = client.player.tickCount;
