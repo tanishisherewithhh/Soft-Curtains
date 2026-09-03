@@ -226,6 +226,20 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
         });
     }
 
+    //hack so that blinds don't disappear too close
+    @Override
+    public int getViewDistance() {
+        return 96;
+    }
+
+    /*
+    @Override
+    public boolean shouldRender(CurtainBlockEntity be, Vec3 cameraPos) {
+        return be.isAnchor;
+    }
+
+     */
+
     private void renderBlindCords(PoseStack.Pose matrix, VertexConsumer buffer,
                                   CurtainRenderState state, float x0, float x1,
                                   float bottomY, float slatDepth, float pitchAngle,

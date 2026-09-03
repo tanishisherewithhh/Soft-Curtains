@@ -21,6 +21,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -459,6 +460,11 @@ public class CurtainBlockEntity extends BlockEntity {
         }
 
         return gustStrength * exposure * 0.075f;
+    }
+
+    @Override
+    public @Nullable Object getRenderData() {
+        return super.getRenderData();
     }
 
     public void handleRedstoneInput(Level level) {
