@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-//Hack cuz fabric's model provider aint working :(
+//Hack cuz fabric's model provider aint working :( or I am doing smth wrong
 @Mixin(targets = "net.minecraft.client.data.models.ModelProvider$BlockStateGeneratorCollector")
 public class BlockStateValidationMixin {
 
@@ -24,7 +24,7 @@ public class BlockStateValidationMixin {
                     target = "Ljava/util/stream/Stream;filter(Ljava/util/function/Predicate;)Ljava/util/stream/Stream;"
             )
     )
-    private Stream<Holder.Reference<Block>> ignoreModBlocksFromVanillaValidator(
+    private Stream<Holder.Reference<Block>> ignoreBlocksFromVanillaValidator(
             Stream<Holder.Reference<Block>> stream,
             Predicate<Holder.Reference<Block>> predicate
     ) {
@@ -33,6 +33,8 @@ public class BlockStateValidationMixin {
             return !id.getNamespace().equals(SoftCurtainsMain.MOD_ID);
         });
     }
+
+    //cancelling the entire validation is very risky, todo: cancel only curtain block and item validation
 
     @Mixin(targets = "net.minecraft.client.data.models.ModelProvider$BlockStateGeneratorCollector")
     public static class BlockStateCollectorMixin {

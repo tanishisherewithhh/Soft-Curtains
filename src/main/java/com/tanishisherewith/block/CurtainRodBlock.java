@@ -119,10 +119,15 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
         boolean hasRight = isMatching(level, pos.relative(rightDir), facing);
 
         CurtainRodType type;
-        if (!hasLeft && !hasRight) type = CurtainRodType.STRAIGHT;
-        else if (!hasLeft) type = CurtainRodType.END_LEFT;
-        else if (!hasRight) type = CurtainRodType.END_RIGHT;
-        else type = CurtainRodType.NONE;
+        if (!hasLeft && !hasRight) {
+            type = CurtainRodType.STRAIGHT;
+        } else if (!hasLeft) {
+            type = CurtainRodType.END_LEFT;
+        } else if (!hasRight) {
+            type = CurtainRodType.END_RIGHT;
+        } else {
+            type = CurtainRodType.NONE;
+        }
 
         return state.setValue(ROD_TYPE, type);
     }

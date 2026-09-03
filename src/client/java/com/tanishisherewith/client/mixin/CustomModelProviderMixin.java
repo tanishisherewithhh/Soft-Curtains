@@ -15,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.concurrent.CompletableFuture;
 
+// if you don't do this, data-gen crashes with "Missing blockstate definitions"
 @Mixin(ModelProvider.class)
 public abstract class CustomModelProviderMixin {
 

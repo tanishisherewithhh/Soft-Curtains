@@ -14,6 +14,7 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.EasingType;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -21,6 +22,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +34,9 @@ public class CurtainBlockEntity extends BlockEntity {
     // 1.5 pixels = 0.09375 metre
     public static final float STOPPER_MARGIN = 0.09375f;
     public static final float CURTAIN_TOP_Y = 0.8125f;
+
+    private float[] columnDispZ;
+    private float[] columnVelZ;
 
     public DyeColor color = DyeColor.WHITE;
     public final List<DyeColor> segmentColors = new ArrayList<>();
@@ -223,6 +229,8 @@ public class CurtainBlockEntity extends BlockEntity {
             this.prevX = new float[totalNodes][GRID_H];
             this.prevY = new float[totalNodes][GRID_H];
             this.prevZ = new float[totalNodes][GRID_H];
+            this.columnDispZ = new float[totalNodes];
+            this.columnVelZ = new float[totalNodes];
             this.resetGrid();
         }
     }
@@ -337,51 +345,55 @@ public class CurtainBlockEntity extends BlockEntity {
 
             float totalTravel = endTargetX - startX;
             float currentTravel = totalTravel * be.openProgress;
-
             float compression = 1.0f - be.openProgress;
             float foldDepth = 0.015f + compression * 0.045f;
 
-            float dragVelocity = (be.openProgress - be.prevOpenProgress) * Math.abs(totalTravel);
-            be.swayVelocityX = (be.swayVelocityX + dragVelocity * 0.25f) * 0.75f;
-            be.swayVelocityZ = (be.swayVelocityZ + Math.abs(dragVelocity) * 0.15f * (float) Math.sin(be.openProgress * Math.PI)) * 0.75f;
-
-            long gameTime = level.getGameTime();
-            float windPhase = (gameTime + pos.hashCode() % 100) * 0.05f;
-            float baseWindStrength = level.isRaining() ? 0.035f : 0.015f;
-            float windZ = (float) Math.sin(windPhase) * (float) Math.cos(windPhase * 0.5f) * baseWindStrength;
-
-            /*
-            AABB curtainBox = new AABB(
-                    pos.getX() - 0.5, pos.getY() - be.length, pos.getZ() - 0.5,
-                    pos.getX() + 1.5, pos.getY() + 1.0, pos.getZ() + 1.5
-            );
-            List<Entity> entities = level.getEntities(null, curtainBox);
-            float collisionPushZ = 0.0f;
-
-            for (Entity entity : entities) {
-                if (entity.isAlive()) {
-                    float entitySpeed = (float) entity.getDeltaMovement().length();
-                    if (entitySpeed > 0.01f) {
-                        collisionPushZ += (float) (entity.getDeltaMovement().z * 0.4f);
-                    }
-                }
-            }
-
-             */
-
-            // 1.5 pixels (0.09375 metre)
-            float maxDisplacement = 0.09375f;
-            float combinedSwayZ = Mth.clamp(be.swayVelocityZ + windZ /*+ collisionPushZ*/, -maxDisplacement, maxDisplacement);
+            int gw = be.allocatedW;
             float totalHeight = (float) be.length - (1.0f - CURTAIN_TOP_Y);
 
-            int gw = be.allocatedW;
+            float dragVelocity = (be.openProgress - be.prevOpenProgress) * Math.abs(totalTravel);
+            float dragScale = be.openProgress < 0.5f ? (be.openProgress / 0.5f) : 1.0f;
+            be.swayVelocityX = (be.swayVelocityX + dragVelocity * 0.25f * dragScale) * 0.80f;
+
+            boolean canSeeSky = level.canSeeSky(pos);
+            BlockPos frontPos = pos.relative(facing);
+            BlockPos backPos = pos.relative(facing.getOpposite());
+            boolean frontOpen = !level.getBlockState(frontPos).isSolidRender();
+            boolean backOpen = !level.getBlockState(backPos).isSolidRender();
+
+            float exposure = 0.15f;
+            if (canSeeSky) {
+                exposure = 1.0f;
+            } else if (frontOpen && backOpen) {
+                exposure = 0.65f;
+            } else if (frontOpen || backOpen) {
+                exposure = 0.35f;
+            }
+
+            if (level.isThundering()) {
+                exposure *= 2.4f;
+            } else if (level.isRaining()) {
+                exposure *= 1.6f;
+            }
+
+            float windMultiplier = 0.0f;
+            if (be.openProgress > 0.25f) {
+                float windRamp = (be.openProgress - 0.25f) / 0.75f;
+                windMultiplier = windRamp * windRamp;
+            }
+
+            float windZ = getWindZ(level, pos, exposure) * windMultiplier;
+
+            float foldScale = be.openProgress < 0.5f
+                    ? 1.0f + (0.5f - be.openProgress) * 2.0f
+                    : (1.0f - (be.openProgress - 0.5f) * 0.6f);
 
             for (int ix = 0; ix < gw; ix++) {
                 float u = (float) ix / (gw - 1);
                 float columnBaseX = startX + (u * currentTravel);
 
                 float foldPhase = u * be.span * (3.0f + compression * 3.0f) * (float) Math.PI;
-                float baseZ = (float) Math.sin(foldPhase) * foldDepth;
+                float baseZ = (float) Math.sin(foldPhase) * foldDepth * foldScale;
 
                 for (int iy = 0; iy < GRID_H; iy++) {
                     float v = (float) iy / (GRID_H - 1);
@@ -391,22 +403,44 @@ public class CurtainBlockEntity extends BlockEntity {
                     be.prevY[ix][iy] = be.posY[ix][iy];
                     be.prevZ[ix][iy] = be.posZ[ix][iy];
 
-                    // scale the fold depth near the top so it doesnt clip into the rod
+                    float mobility = v * v;
                     float topConstraint = (float) Math.sqrt(v);
-                    float clampedBaseZ = baseZ * topConstraint;
 
-                    float bend = v * v;
-                    float swayOffsetX = be.expandRight ? (-be.swayVelocityX * bend * 0.50f) : (be.swayVelocityX * bend * 0.50f);
-
+                    float swayOffsetX = be.expandRight ? (-be.swayVelocityX * mobility * 0.50f) : (be.swayVelocityX * mobility * 0.50f);
                     float targetX = columnBaseX + swayOffsetX;
-                    float targetZ = clampedBaseZ + (combinedSwayZ * (float) Math.sin(v * Math.PI * 0.5f));
+
+                    float targetZ = (baseZ * topConstraint) + (windZ * mobility);
 
                     be.posX[ix][iy] = targetX;
                     be.posY[ix][iy] = targetY;
-                    be.posZ[ix][iy] = Mth.lerp(0.35f, be.posZ[ix][iy], targetZ);
+                    be.posZ[ix][iy] = Mth.lerp(0.20f, be.posZ[ix][iy], targetZ);
                 }
             }
         }
+    }
+
+    private static float getWindZ(Level level, BlockPos pos, float exposure) {
+        long time = level.getGameTime();
+        int seed = pos.hashCode();
+
+
+        float gustCycle = ((time + (seed & 0xFF)) % 240) / 240.0f;
+
+
+        float gustStrength = 0.0f;
+        if (gustCycle > 0.30f && gustCycle < 0.85f) {
+            float ramp = (gustCycle - 0.30f) / 0.55f;
+
+            float envelope = (float) Math.sin(ramp * Math.PI);
+
+
+            float microFlutter = (float) Math.sin((time * 0.12f) + (seed % 17)) * 0.35f + 0.65f;
+            gustStrength = envelope * microFlutter;
+        }
+
+
+        float unidirectionalWindZ = gustStrength * exposure * 0.075f;
+        return unidirectionalWindZ;
     }
 
     public void handleRedstoneInput(Level level) {
