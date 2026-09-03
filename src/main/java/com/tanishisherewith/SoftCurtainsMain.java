@@ -3,6 +3,7 @@ package com.tanishisherewith;
 import com.tanishisherewith.block.CurtainRodBlock;
 import com.tanishisherewith.block.RodMaterial;
 import com.tanishisherewith.entity.CurtainBlockEntity;
+import com.tanishisherewith.entity.CurtainStyle;
 import com.tanishisherewith.network.CurtainDragPayload;
 import com.tanishisherewith.registry.CurtainsBlockEntities;
 import com.tanishisherewith.registry.CurtainsBlocks;
@@ -17,7 +18,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -80,8 +83,15 @@ public class SoftCurtainsMain implements ModInitializer {
             for (RodMaterial material : RodMaterial.values()) {
                 entries.accept(CurtainsItems.ROD_ITEMS.get(material));
             }
-            for (Item curtainItem : CurtainsItems.CURTAINS.values()) {
-                entries.accept(curtainItem);
+
+            entries.accept(CurtainsItems.TAILORING_SHEARS);
+
+            for (CurtainStyle style : CurtainStyle.values()) {
+                for (Item curtainItem : CurtainsItems.CURTAINS.values()) {
+                    ItemStack stack = new ItemStack(curtainItem);
+                    stack.set(CurtainsComponents.CURTAIN_STYLE.get(), style);
+                    entries.accept(stack);
+                }
             }
         });
     }

@@ -2,8 +2,10 @@ package com.tanishisherewith.block;
 
 import com.mojang.serialization.MapCodec;
 import com.tanishisherewith.entity.CurtainBlockEntity;
+import com.tanishisherewith.entity.CurtainStyle;
 import com.tanishisherewith.item.CurtainItem;
 import com.tanishisherewith.registry.CurtainsBlockEntities;
+import com.tanishisherewith.registry.CurtainsComponents;
 import com.tanishisherewith.registry.CurtainsItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -16,7 +18,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.Item;
@@ -31,7 +32,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
-import net.minecraft.world.level.block.entity.BannerPatternLayers;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -141,10 +141,6 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
 
     @Override
     protected InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (hand != InteractionHand.MAIN_HAND) {
-            return InteractionResult.PASS;
-        }
-
         if (stack.isEmpty() && player.isShiftKeyDown() && !state.getValue(HAS_CURTAIN)) {
             if (!level.isClientSide()) {
                 CurtainRodType nextType = switch (state.getValue(ROD_TYPE)) {
@@ -166,23 +162,17 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
             CurtainBlockEntity master = targetBe.getMasterAnchor();
             BlockPos masterPos = master.getBlockPos();
 
-            if (stack.getItem() instanceof BannerItem bannerItem) {
-                BannerPatternLayers layers = stack.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY);
-                if (!layers.layers().isEmpty()) {
-                    if (!level.isClientSide()) {
-                        master.setBaseColor(bannerItem.getColor());
-                        master.applyBanner(stack);
-                        master.setChanged();
-                        level.sendBlockUpdated(masterPos, level.getBlockState(masterPos), level.getBlockState(masterPos), Block.UPDATE_ALL);
-                        level.playSound(null, masterPos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
+            if (stack.getItem() instanceof com.tanishisherewith.item.TailoringShearsItem) {
+                if (!level.isClientSide()) {
+                    master.setStyle(master.getStyle().next());
+                    master.setChanged();
+                    level.sendBlockUpdated(masterPos, level.getBlockState(masterPos), level.getBlockState(masterPos), Block.UPDATE_ALL);
 
-                        if (!player.isCreative()) {
-                            stack.shrink(1);
-                        }
-                    }
-                    return InteractionResult.SUCCESS;
+                    EquipmentSlot slot = player.getUsedItemHand().asEquipmentSlot();
+                    stack.hurtAndBreak(1, player, slot);
                 }
-                return InteractionResult.CONSUME;
+                level.playSound(player, masterPos, SoundEvents.SHEEP_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
+                return InteractionResult.SUCCESS;
             }
 
             if (stack.getItem() instanceof DyeItem) {
@@ -295,6 +285,10 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                 BlockEntity newBe = level.getBlockEntity(pos);
                 if (newBe instanceof CurtainBlockEntity newCurtain) {
                     newCurtain.setupAsAnchor(curtainItem.getColor(), 1, expandRight, facing);
+                    CurtainStyle chosenStyle = stack.get(CurtainsComponents.CURTAIN_STYLE.get());
+                    if (chosenStyle != null) {
+                        newCurtain.setStyle(chosenStyle);
+                    }
                 }
 
                 if (!player.isCreative()) {
@@ -317,9 +311,11 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                 BlockPos masterPos = master.getBlockPos();
 
                 Item droppedItem = CurtainsItems.CURTAINS.get(master.getColor());
+                ItemStack droppedStack = new ItemStack(droppedItem != null ? droppedItem : Items.WOOL.white());
+                droppedStack.set(CurtainsComponents.CURTAIN_STYLE.get(), master.getStyle());
 
                 if (curtain.isAnchor) {
-                    Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, new ItemStack(droppedItem));
+                    Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, droppedStack);
 
                     List<DyeColor> segs = master.getSegmentColors();
                     if (segs.size() > 1) {
@@ -341,6 +337,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                                 nextAnchor.segmentColors.clear();
                                 nextAnchor.segmentColors.addAll(master.getSegmentColors());
                                 nextAnchor.setLength(master.getLength());
+                                nextAnchor.setStyle(master.getStyle());
                                 nextAnchor.setOpenProgress(master.getOpenProgress());
 
                                 for (int i = 2; i < master.getSpan(); i++) {
@@ -362,7 +359,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                         master.setChanged();
                         level.sendBlockUpdated(masterPos, level.getBlockState(masterPos), level.getBlockState(masterPos), Block.UPDATE_ALL);
                     }
-                    Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, new ItemStack(droppedItem));
+                    Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, droppedStack);
                 }
             }
         }
@@ -388,6 +385,23 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
             }
         }
         return DyeColor.WHITE;
+    }
+
+    @Override
+    protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
+        BlockEntity be = level.getBlockEntity(pos);
+        if (be instanceof CurtainBlockEntity curtain) {
+            CurtainBlockEntity anchor = curtain.isAnchor ? curtain : curtain.getMasterAnchor();
+            if (anchor != null) {
+                Item item = CurtainsItems.CURTAINS.get(anchor.getColor());
+                if (item != null) {
+                    ItemStack stack = new ItemStack(item);
+                    stack.set(CurtainsComponents.CURTAIN_STYLE.get(), anchor.getStyle());
+                    return stack;
+                }
+            }
+        }
+        return new ItemStack(this);
     }
 
     @Override

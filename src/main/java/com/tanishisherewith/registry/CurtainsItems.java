@@ -3,6 +3,7 @@ package com.tanishisherewith.registry;
 import com.tanishisherewith.SoftCurtainsMain;
 import com.tanishisherewith.block.RodMaterial;
 import com.tanishisherewith.item.CurtainItem;
+import com.tanishisherewith.item.TailoringShearsItem;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -19,6 +20,7 @@ import java.util.function.Function;
 public class CurtainsItems {
     public static final Map<RodMaterial, Item> ROD_ITEMS = new EnumMap<>(RodMaterial.class);
     public static final Map<DyeColor, Item> CURTAINS = new EnumMap<>(DyeColor.class);
+    public static final Item TAILORING_SHEARS;
 
     static {
         for (RodMaterial material : RodMaterial.values()) {
@@ -31,6 +33,8 @@ public class CurtainsItems {
                     key -> new CurtainItem(new Item.Properties().setId(key).stacksTo(16), color));
             CURTAINS.put(color, curtainItem);
         }
+        TAILORING_SHEARS = register("tailoring_shears",
+                key -> new TailoringShearsItem(new Item.Properties().setId(key).durability(238)));
     }
 
     private static <T extends Item> T register(String name, Function<ResourceKey<Item>, T> itemFactory) {

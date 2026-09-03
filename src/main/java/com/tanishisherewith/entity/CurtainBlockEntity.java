@@ -6,7 +6,6 @@ import com.tanishisherewith.registry.CurtainsBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -16,10 +15,8 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.EasingType;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.DyeColor;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BannerPatternLayers;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
@@ -31,12 +28,9 @@ import java.util.List;
 public class CurtainBlockEntity extends BlockEntity {
     public static final int NODES_PER_BLOCK = 16;
     public static final int GRID_H = 14;
-    // 1.5 pixels = 0.09375 metre
     public static final float STOPPER_MARGIN = 0.09375f;
     public static final float CURTAIN_TOP_Y = 0.8125f;
-
-    private float[] columnDispZ;
-    private float[] columnVelZ;
+    protected CurtainStyle style = CurtainStyle.DRAPES;
 
     public DyeColor color = DyeColor.WHITE;
     public final List<DyeColor> segmentColors = new ArrayList<>();
@@ -46,10 +40,8 @@ public class CurtainBlockEntity extends BlockEntity {
     public BlockPos anchorPos = null;
 
     public int length = 1;
-
     private int lastRedstonePower = 0;
 
-    // Progress values: 0.15f (Closed) to 1.0f (Open)
     public float openProgress = 1.0f;
     public float prevOpenProgress = 1.0f;
     public float targetOpenProgress = 1.0f;
@@ -146,9 +138,10 @@ public class CurtainBlockEntity extends BlockEntity {
                 for (Direction checkDir : new Direction[]{facing.getClockWise(), facing.getCounterClockWise()}) {
                     for (int i = 1; i <= 16; i++) {
                         BlockPos checkPos = this.worldPosition.relative(checkDir, i);
-                        if (be instanceof CurtainBlockEntity target && target.isAnchor) {
+                        BlockEntity target = this.level.getBlockEntity(checkPos);
+                        if (target instanceof CurtainBlockEntity curtain && curtain.isAnchor) {
                             this.anchorPos = checkPos;
-                            return target;
+                            return curtain;
                         }
                     }
                 }
@@ -229,27 +222,28 @@ public class CurtainBlockEntity extends BlockEntity {
             this.prevX = new float[totalNodes][GRID_H];
             this.prevY = new float[totalNodes][GRID_H];
             this.prevZ = new float[totalNodes][GRID_H];
-            this.columnDispZ = new float[totalNodes];
-            this.columnVelZ = new float[totalNodes];
             this.resetGrid();
         }
     }
 
-    private float getLeftMargin(BlockPos pos, BlockState state) {
+    public float getLeftMargin(BlockPos pos, BlockState state) {
         if (!(state.getBlock() instanceof CurtainRodBlock)) return 0.0f;
         CurtainRodType type = state.getValue(CurtainRodBlock.ROD_TYPE);
         return (type == CurtainRodType.STRAIGHT || type == CurtainRodType.END_LEFT) ? STOPPER_MARGIN : 0.0f;
     }
 
-    private float getRightMargin(BlockPos pos, BlockState state) {
+    public float getRightMargin(BlockPos pos, BlockState state) {
         if (!(state.getBlock() instanceof CurtainRodBlock)) return 0.0f;
         CurtainRodType type = state.getValue(CurtainRodBlock.ROD_TYPE);
         return (type == CurtainRodType.STRAIGHT || type == CurtainRodType.END_RIGHT) ? STOPPER_MARGIN : 0.0f;
     }
 
-    public void resetGrid() {
-        if (!this.isAnchor || this.posX == null || this.level == null) return;
-        int gw = this.allocatedW;
+    public float[] getUsableHorizontalBounds() {
+        if (this.level == null) {
+            float x0 = this.expandRight ? STOPPER_MARGIN : 1.0f - STOPPER_MARGIN;
+            float x1 = this.expandRight ? (float) this.span - STOPPER_MARGIN : STOPPER_MARGIN - (float) (this.span - 1);
+            return new float[]{Math.min(x0, x1), Math.max(x0, x1)};
+        }
 
         Direction facing = this.getBlockState().getValue(CurtainRodBlock.FACING);
         Direction stepDir = this.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
@@ -275,23 +269,34 @@ public class CurtainBlockEntity extends BlockEntity {
             endTargetX = leftM - (float) (this.span - 1);
         }
 
+        return new float[]{Math.min(startX, endTargetX), Math.max(startX, endTargetX)};
+    }
+
+    public void resetGrid() {
+        if (!this.isAnchor || this.posX == null || this.level == null) return;
+        int gw = this.allocatedW;
+
+        float[] bounds = this.getUsableHorizontalBounds();
+        float startX = this.expandRight ? bounds[0] : bounds[1];
+        float endTargetX = this.expandRight ? bounds[1] : bounds[0];
+
         float totalTravel = endTargetX - startX;
-        float currentTravel = totalTravel * this.openProgress;
-        float compressionFactor = 1.0f - this.openProgress;
+        float currentTravel = (this.style == CurtainStyle.DRAPES) ? totalTravel * this.openProgress : totalTravel;
+        float compressionFactor = (this.style == CurtainStyle.DRAPES) ? (1.0f - this.openProgress) : 0.0f;
         float foldDepth = 0.02f + compressionFactor * 0.05f;
         float totalHeight = (float) this.length - (1.0f - CURTAIN_TOP_Y);
 
         for (int ix = 0; ix < gw; ix++) {
             float u = (float) ix / (gw - 1);
             float x = startX + (u * currentTravel);
-            float z = (float) Math.sin(u * this.span * (3.0 + compressionFactor * 3.0) * Math.PI) * foldDepth;
+            float z = (this.style == CurtainStyle.DRAPES)
+                    ? (float) Math.sin(u * this.span * (3.0 + compressionFactor * 3.0) * Math.PI) * foldDepth
+                    : 0.0f;
 
             for (int iy = 0; iy < GRID_H; iy++) {
                 float v = (float) iy / (GRID_H - 1);
                 float y = CURTAIN_TOP_Y - (v * totalHeight);
-
-                float topConstraint = (float) Math.sqrt(v);
-                float clampedZ = z * topConstraint;
+                float clampedZ = z * (float) Math.sqrt(v);
 
                 this.posX[ix][iy] = this.prevX[ix][iy] = x;
                 this.posY[ix][iy] = this.prevY[ix][iy] = y;
@@ -319,125 +324,139 @@ public class CurtainBlockEntity extends BlockEntity {
         }
 
         if (level.isClientSide()) {
-            Direction facing = state.getValue(CurtainRodBlock.FACING);
-            Direction stepDir = be.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
-
-            BlockPos anchorBlockPos = be.worldPosition;
-            BlockState anchorBlockState = be.getBlockState();
-
-            BlockPos endBlockPos = be.worldPosition.relative(stepDir, be.span - 1);
-            BlockState endBlockState = level.getBlockState(endBlockPos);
-
-            float startX;
-            float endTargetX;
-
-            if (be.expandRight) {
-                float leftM = be.getLeftMargin(anchorBlockPos, anchorBlockState);
-                float rightM = be.getRightMargin(endBlockPos, endBlockState);
-                startX = leftM;
-                endTargetX = (float) be.span - rightM;
+            if (be.style == CurtainStyle.DRAPES) {
+                be.tickDrapeClothPhysics(level, pos, state);
             } else {
-                float rightM = be.getRightMargin(anchorBlockPos, anchorBlockState);
-                float leftM = be.getLeftMargin(endBlockPos, endBlockState);
-                startX = 1.0f - rightM;
-                endTargetX = leftM - (float) (be.span - 1);
-            }
-
-            float totalTravel = endTargetX - startX;
-            float currentTravel = totalTravel * be.openProgress;
-            float compression = 1.0f - be.openProgress;
-            float foldDepth = 0.015f + compression * 0.045f;
-
-            int gw = be.allocatedW;
-            float totalHeight = (float) be.length - (1.0f - CURTAIN_TOP_Y);
-
-            float dragVelocity = (be.openProgress - be.prevOpenProgress) * Math.abs(totalTravel);
-            float dragScale = be.openProgress < 0.5f ? (be.openProgress / 0.5f) : 1.0f;
-            be.swayVelocityX = (be.swayVelocityX + dragVelocity * 0.25f * dragScale) * 0.80f;
-
-            boolean canSeeSky = level.canSeeSky(pos);
-            BlockPos frontPos = pos.relative(facing);
-            BlockPos backPos = pos.relative(facing.getOpposite());
-            boolean frontOpen = !level.getBlockState(frontPos).isSolidRender();
-            boolean backOpen = !level.getBlockState(backPos).isSolidRender();
-
-            float exposure = 0.15f;
-            if (canSeeSky) {
-                exposure = 1.0f;
-            } else if (frontOpen && backOpen) {
-                exposure = 0.65f;
-            } else if (frontOpen || backOpen) {
-                exposure = 0.35f;
-            }
-
-            if (level.isThundering()) {
-                exposure *= 2.4f;
-            } else if (level.isRaining()) {
-                exposure *= 1.6f;
-            }
-
-            float windMultiplier = 0.0f;
-            if (be.openProgress > 0.25f) {
-                float windRamp = (be.openProgress - 0.25f) / 0.75f;
-                windMultiplier = windRamp * windRamp;
-            }
-
-            float windZ = getWindZ(level, pos, exposure) * windMultiplier;
-
-            float foldScale = be.openProgress < 0.5f
-                    ? 1.0f + (0.5f - be.openProgress) * 2.0f
-                    : (1.0f - (be.openProgress - 0.5f) * 0.6f);
-
-            for (int ix = 0; ix < gw; ix++) {
-                float u = (float) ix / (gw - 1);
-                float columnBaseX = startX + (u * currentTravel);
-
-                float foldPhase = u * be.span * (3.0f + compression * 3.0f) * (float) Math.PI;
-                float baseZ = (float) Math.sin(foldPhase) * foldDepth * foldScale;
-
-                for (int iy = 0; iy < GRID_H; iy++) {
-                    float v = (float) iy / (GRID_H - 1);
-                    float targetY = CURTAIN_TOP_Y - (v * totalHeight);
-
-                    be.prevX[ix][iy] = be.posX[ix][iy];
-                    be.prevY[ix][iy] = be.posY[ix][iy];
-                    be.prevZ[ix][iy] = be.posZ[ix][iy];
-
-                    float mobility = v * v;
-                    float topConstraint = (float) Math.sqrt(v);
-
-                    float swayOffsetX = be.expandRight ? (-be.swayVelocityX * mobility * 0.50f) : (be.swayVelocityX * mobility * 0.50f);
-                    float targetX = columnBaseX + swayOffsetX;
-
-                    float targetZ = (baseZ * topConstraint) + (windZ * mobility);
-
-                    be.posX[ix][iy] = targetX;
-                    be.posY[ix][iy] = targetY;
-                    be.posZ[ix][iy] = Mth.lerp(0.20f, be.posZ[ix][iy], targetZ);
-                }
+                be.tickRigidPendulumPhysics(level, pos, state);
             }
         }
+    }
+
+    private void tickDrapeClothPhysics(Level level, BlockPos pos, BlockState state) {
+        float[] bounds = this.getUsableHorizontalBounds();
+        float startX = this.expandRight ? bounds[0] : bounds[1];
+        float endTargetX = this.expandRight ? bounds[1] : bounds[0];
+
+        float totalTravel = endTargetX - startX;
+        float currentTravel = totalTravel * this.openProgress;
+        float compression = 1.0f - this.openProgress;
+        float foldDepth = 0.015f + compression * 0.045f;
+
+        int gw = this.allocatedW;
+        float totalHeight = (float) this.length - (1.0f - CURTAIN_TOP_Y);
+
+        float dragVelocity = (this.openProgress - this.prevOpenProgress) * Math.abs(totalTravel);
+        float dragScale = this.openProgress < 0.5f ? (this.openProgress / 0.5f) : 1.0f;
+        this.swayVelocityX = (this.swayVelocityX + dragVelocity * 0.25f * dragScale) * 0.80f;
+
+        float exposure = calculateExposure(level, pos, state.getValue(CurtainRodBlock.FACING));
+        float windMultiplier = 0.0f;
+        if (this.openProgress > 0.25f) {
+            float windRamp = (this.openProgress - 0.25f) / 0.75f;
+            windMultiplier = windRamp * windRamp;
+        }
+
+        float windZ = getWindZ(level, pos, exposure) * windMultiplier;
+        float foldScale = this.openProgress < 0.5f
+                ? 1.0f + (0.5f - this.openProgress) * 2.0f
+                : (1.0f - (this.openProgress - 0.5f) * 0.6f);
+
+        for (int ix = 0; ix < gw; ix++) {
+            float u = (float) ix / (gw - 1);
+            float columnBaseX = startX + (u * currentTravel);
+            float foldPhase = u * this.span * (3.0f + compression * 3.0f) * (float) Math.PI;
+            float baseZ = (float) Math.sin(foldPhase) * foldDepth * foldScale;
+
+            for (int iy = 0; iy < GRID_H; iy++) {
+                float v = (float) iy / (GRID_H - 1);
+                float targetY = CURTAIN_TOP_Y - (v * totalHeight);
+
+                this.prevX[ix][iy] = this.posX[ix][iy];
+                this.prevY[ix][iy] = this.posY[ix][iy];
+                this.prevZ[ix][iy] = this.posZ[ix][iy];
+
+                float mobility = v * v;
+                float topConstraint = (float) Math.sqrt(v);
+
+                float swayOffsetX = this.expandRight ? (-this.swayVelocityX * mobility * 0.50f) : (this.swayVelocityX * mobility * 0.50f);
+                float targetX = columnBaseX + swayOffsetX;
+                float targetZ = (baseZ * topConstraint) + (windZ * mobility);
+
+                this.posX[ix][iy] = targetX;
+                this.posY[ix][iy] = targetY;
+                this.posZ[ix][iy] = Mth.lerp(0.20f, this.posZ[ix][iy], targetZ);
+            }
+        }
+    }
+
+    private void tickRigidPendulumPhysics(Level level, BlockPos pos, BlockState state) {
+        float[] bounds = this.getUsableHorizontalBounds();
+        float minX = bounds[0];
+        float maxX = bounds[1];
+
+        int gw = this.allocatedW;
+        float totalHeight = (float) this.length - (1.0f - CURTAIN_TOP_Y);
+
+        float exposure = calculateExposure(level, pos, state.getValue(CurtainRodBlock.FACING));
+        float windZ = getWindZ(level, pos, exposure) * (1.0f - this.openProgress * 0.5f);
+
+        for (int ix = 0; ix < gw; ix++) {
+            float u = (float) ix / (gw - 1);
+            float targetX = Mth.lerp(u, minX, maxX);
+
+            for (int iy = 0; iy < GRID_H; iy++) {
+                float v = (float) iy / (GRID_H - 1);
+                float targetY = CURTAIN_TOP_Y - (v * totalHeight);
+
+                this.prevX[ix][iy] = this.posX[ix][iy];
+                this.prevY[ix][iy] = this.posY[ix][iy];
+                this.prevZ[ix][iy] = this.posZ[ix][iy];
+
+                float targetZ = windZ * (v * v);
+
+                this.posX[ix][iy] = targetX;
+                this.posY[ix][iy] = targetY;
+                this.posZ[ix][iy] = Mth.lerp(0.15f, this.posZ[ix][iy], targetZ);
+            }
+        }
+    }
+
+    private static float calculateExposure(Level level, BlockPos pos, Direction facing) {
+        boolean canSeeSky = level.canSeeSky(pos);
+        BlockPos frontPos = pos.relative(facing);
+        BlockPos backPos = pos.relative(facing.getOpposite());
+        boolean frontOpen = !level.getBlockState(frontPos).isSolidRender();
+        boolean backOpen = !level.getBlockState(backPos).isSolidRender();
+
+        float exposure = 0.15f;
+        if (canSeeSky) {
+            exposure = 1.0f;
+        } else if (frontOpen && backOpen) {
+            exposure = 0.65f;
+        } else if (frontOpen || backOpen) {
+            exposure = 0.35f;
+        }
+
+        if (level.isThundering()) {
+            exposure *= 2.4f;
+        } else if (level.isRaining()) {
+            exposure *= 1.6f;
+        }
+        return exposure;
     }
 
     private static float getWindZ(Level level, BlockPos pos, float exposure) {
         long time = level.getGameTime();
         int seed = pos.hashCode();
 
-
         float gustCycle = ((time + (seed & 0xFF)) % 240) / 240.0f;
-
-
         float gustStrength = 0.0f;
         if (gustCycle > 0.30f && gustCycle < 0.85f) {
             float ramp = (gustCycle - 0.30f) / 0.55f;
-
             float envelope = (float) Math.sin(ramp * Math.PI);
-
-
             float microFlutter = (float) Math.sin((time * 0.12f) + (seed % 17)) * 0.35f + 0.65f;
             gustStrength = envelope * microFlutter;
         }
-
 
         return gustStrength * exposure * 0.075f;
     }
@@ -467,7 +486,6 @@ public class CurtainBlockEntity extends BlockEntity {
             this.lastRedstonePower = maxPower;
             int speedTicks = Math.max(6, 50 - (maxPower * 2));
             if (maxPower > 0) {
-                // power of signal controls the speed, so power 15 gives 20 ticks to fully toggle while power 1 gives 48 ticks.
                 this.animateTo(1.0f, speedTicks);
             } else {
                 this.animateTo(0.15f, speedTicks);
@@ -519,6 +537,7 @@ public class CurtainBlockEntity extends BlockEntity {
         output.putFloat("AnimTargetProgress", this.animTargetProgress);
         output.putInt("AnimCurrentTick", this.animCurrentTick);
         output.putInt("AnimTotalTicks", this.animTotalTicks);
+        output.putString("Style", this.style.getSerializedName());
 
         output.store("Segments", DyeColor.CODEC.listOf(), this.getSegmentColors());
     }
@@ -557,6 +576,14 @@ public class CurtainBlockEntity extends BlockEntity {
                 () -> this.segmentColors.add(this.color)
         );
 
+        String styleStr = input.getStringOr("Style", "drapes");
+        for (CurtainStyle s : CurtainStyle.values()) {
+            if (s.getSerializedName().equalsIgnoreCase(styleStr)) {
+                this.style = s;
+                break;
+            }
+        }
+
         if (this.segmentColors.isEmpty()) {
             this.segmentColors.add(this.color);
         }
@@ -586,6 +613,7 @@ public class CurtainBlockEntity extends BlockEntity {
         tag.putFloat("AnimTargetProgress", this.animTargetProgress);
         tag.putInt("AnimCurrentTick", this.animCurrentTick);
         tag.putInt("AnimTotalTicks", this.animTotalTicks);
+        tag.putString("Style", this.style.getSerializedName());
 
         ListTag segList = new ListTag();
         for (DyeColor c : this.getSegmentColors()) {
@@ -608,6 +636,19 @@ public class CurtainBlockEntity extends BlockEntity {
             this.segmentColors.add(this.getColor());
         }
         return segmentColors;
+    }
+
+    public CurtainStyle getStyle() {
+        return this.style;
+    }
+
+    public void setStyle(CurtainStyle style) {
+        this.style = style;
+        this.resetGrid();
+        this.setChanged();
+        if (this.level != null) {
+            this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
+        }
     }
 
     public int getSpan() { return Math.max(1, span); }

@@ -1,5 +1,6 @@
 package com.tanishisherewith.client.state;
 
+import com.tanishisherewith.entity.CurtainStyle;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.core.Direction;
 
@@ -16,4 +17,10 @@ public class CurtainRenderState extends BlockEntityRenderState {
     public boolean expandRight;
     public int length;
     public Direction facing;
+    public float openProgress;
+    public CurtainStyle style = CurtainStyle.DRAPES;
+    public float swayZ;
+    public int lightCoords;
+    public float minX;
+    public float maxX;
 }
