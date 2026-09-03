@@ -16,6 +16,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BannerItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.Item;
@@ -30,6 +31,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BannerPatternLayers;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -143,7 +145,6 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
             return InteractionResult.PASS;
         }
 
-        //Shift-Click empty hand to cycle rod shape
         if (stack.isEmpty() && player.isShiftKeyDown() && !state.getValue(HAS_CURTAIN)) {
             if (!level.isClientSide()) {
                 CurtainRodType nextType = switch (state.getValue(ROD_TYPE)) {
@@ -164,6 +165,26 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
         if (state.getValue(HAS_CURTAIN) && be instanceof CurtainBlockEntity targetBe) {
             CurtainBlockEntity master = targetBe.getMasterAnchor();
             BlockPos masterPos = master.getBlockPos();
+
+            if (stack.getItem() instanceof BannerItem bannerItem) {
+                BannerPatternLayers layers = stack.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY);
+                if (!layers.layers().isEmpty()) {
+                    if (!level.isClientSide()) {
+                        master.setBaseColor(bannerItem.getColor());
+                        master.applyBanner(stack);
+                        master.setChanged();
+                        level.sendBlockUpdated(masterPos, level.getBlockState(masterPos), level.getBlockState(masterPos), Block.UPDATE_ALL);
+                        level.playSound(null, masterPos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
+
+                        if (!player.isCreative()) {
+                            stack.shrink(1);
+                        }
+                    }
+                    return InteractionResult.SUCCESS;
+                }
+                return InteractionResult.CONSUME;
+            }
+
             if (stack.getItem() instanceof DyeItem) {
                 DyeColor newColor = stack.get(DataComponents.DYE);
                 if (newColor != null && master.getColor() != newColor) {
@@ -197,7 +218,6 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                 return InteractionResult.CONSUME;
             }
 
-
             if (stack.is(ItemTags.WOOL)) {
                 if (master.getLength() < MAX_LENGTH) {
                     if (!level.isClientSide()) {
@@ -214,7 +234,6 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                 return InteractionResult.CONSUME;
             }
 
-            // Shift-Click direct Open/Close
             if (player.isShiftKeyDown()) {
                 if (!level.isClientSide()) {
                     master.toggle();
@@ -223,7 +242,6 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
             }
             return InteractionResult.SUCCESS;
         }
-
 
         if (stack.getItem() instanceof CurtainItem curtainItem && !state.getValue(HAS_CURTAIN)) {
             if (!level.isClientSide()) {
@@ -271,7 +289,6 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                         }
                     }
                 }
-
 
                 boolean expandRight = hitAlongRod < 0.0;
                 level.setBlock(pos, state.setValue(HAS_CURTAIN, true), Block.UPDATE_ALL);

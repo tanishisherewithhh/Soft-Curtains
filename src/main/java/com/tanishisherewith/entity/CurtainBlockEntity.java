@@ -6,6 +6,7 @@ import com.tanishisherewith.registry.CurtainsBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -14,16 +15,15 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.EasingType;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BannerPatternLayers;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -439,8 +439,7 @@ public class CurtainBlockEntity extends BlockEntity {
         }
 
 
-        float unidirectionalWindZ = gustStrength * exposure * 0.075f;
-        return unidirectionalWindZ;
+        return gustStrength * exposure * 0.075f;
     }
 
     public void handleRedstoneInput(Level level) {
@@ -466,12 +465,12 @@ public class CurtainBlockEntity extends BlockEntity {
 
         if (maxPower != this.lastRedstonePower) {
             this.lastRedstonePower = maxPower;
+            int speedTicks = Math.max(6, 50 - (maxPower * 2));
             if (maxPower > 0) {
                 // power of signal controls the speed, so power 15 gives 20 ticks to fully toggle while power 1 gives 48 ticks.
-                int speedTicks = Math.max(6, 50 - (maxPower * 2));
                 this.animateTo(1.0f, speedTicks);
             } else {
-                this.animateTo(0.15f, 24);
+                this.animateTo(0.15f, speedTicks);
             }
         }
     }
@@ -500,34 +499,6 @@ public class CurtainBlockEntity extends BlockEntity {
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
-    }
-
-    @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        CompoundTag tag = new CompoundTag();
-        tag.putBoolean("IsAnchor", this.isAnchor);
-        if (this.anchorPos != null) {
-            tag.putLong("AnchorPos", this.anchorPos.asLong());
-        }
-        tag.putInt("Color", this.getColor().getId());
-        tag.putInt("Span", this.span);
-        tag.putBoolean("ExpandRight", this.expandRight);
-        tag.putInt("Length", this.length);
-        tag.putFloat("OpenProgress", this.openProgress);
-        tag.putFloat("TargetOpenProgress", this.targetOpenProgress);
-
-        tag.putBoolean("IsAnimating", this.isAnimating);
-        tag.putFloat("AnimStartProgress", this.animStartProgress);
-        tag.putFloat("AnimTargetProgress", this.animTargetProgress);
-        tag.putInt("AnimCurrentTick", this.animCurrentTick);
-        tag.putInt("AnimTotalTicks", this.animTotalTicks);
-
-        ListTag segList = new ListTag();
-        for (DyeColor c : this.getSegmentColors()) {
-            segList.add(StringTag.valueOf(c.getName()));
-        }
-        tag.put("Segments", segList);
-        return tag;
     }
 
     @Override
@@ -594,6 +565,34 @@ public class CurtainBlockEntity extends BlockEntity {
         if (this.isAnchor) {
             this.ensureGrid();
         }
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = new CompoundTag();
+        tag.putBoolean("IsAnchor", this.isAnchor);
+        if (this.anchorPos != null) {
+            tag.putLong("AnchorPos", this.anchorPos.asLong());
+        }
+        tag.putInt("Color", this.getColor().getId());
+        tag.putInt("Span", this.span);
+        tag.putBoolean("ExpandRight", this.expandRight);
+        tag.putInt("Length", this.length);
+        tag.putFloat("OpenProgress", this.openProgress);
+        tag.putFloat("TargetOpenProgress", this.targetOpenProgress);
+
+        tag.putBoolean("IsAnimating", this.isAnimating);
+        tag.putFloat("AnimStartProgress", this.animStartProgress);
+        tag.putFloat("AnimTargetProgress", this.animTargetProgress);
+        tag.putInt("AnimCurrentTick", this.animCurrentTick);
+        tag.putInt("AnimTotalTicks", this.animTotalTicks);
+
+        ListTag segList = new ListTag();
+        for (DyeColor c : this.getSegmentColors()) {
+            segList.add(StringTag.valueOf(c.getName()));
+        }
+        tag.put("Segments", segList);
+        return tag;
     }
 
     public DyeColor getColor() {
