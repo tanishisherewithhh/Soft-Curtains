@@ -5,6 +5,7 @@ import com.tanishisherewith.entity.CurtainBlockEntity;
 import com.tanishisherewith.entity.CurtainStyle;
 import com.tanishisherewith.item.CurtainItem;
 import com.tanishisherewith.registry.CurtainsBlockEntities;
+import com.tanishisherewith.registry.CurtainsBlocks;
 import com.tanishisherewith.registry.CurtainsComponents;
 import com.tanishisherewith.registry.CurtainsItems;
 import net.minecraft.core.BlockPos;
@@ -48,6 +49,7 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
 
 public class CurtainRodBlock extends HorizontalDirectionalBlock implements EntityBlock {
     public static final MapCodec<CurtainRodBlock> CODEC = simpleCodec(CurtainRodBlock::new);
@@ -388,20 +390,32 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
     }
 
     @Override
-    protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
-        BlockEntity be = level.getBlockEntity(pos);
-        if (be instanceof CurtainBlockEntity curtain) {
-            CurtainBlockEntity anchor = curtain.isAnchor ? curtain : curtain.getMasterAnchor();
-            if (anchor != null) {
-                Item item = CurtainsItems.CURTAINS.get(anchor.getColor());
-                if (item != null) {
-                    ItemStack stack = new ItemStack(item);
-                    stack.set(CurtainsComponents.CURTAIN_STYLE.get(), anchor.getStyle());
-                    return stack;
+    protected @NonNull ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
+        if (state.getValue(HAS_CURTAIN)) {
+            BlockEntity be = level.getBlockEntity(pos);
+            if (be instanceof CurtainBlockEntity curtain) {
+                CurtainBlockEntity anchor = curtain.isAnchor ? curtain : curtain.getMasterAnchor();
+                if (anchor != null) {
+                    Item curtainItem = CurtainsItems.CURTAINS.get(anchor.getColor());
+                    if (curtainItem != null) {
+                        ItemStack stack = new ItemStack(curtainItem);
+                        stack.set(CurtainsComponents.CURTAIN_STYLE.get(), anchor.getStyle());
+                        return stack;
+                    }
                 }
             }
         }
-        return new ItemStack(this);
+
+        for (Map.Entry<RodMaterial, Block> entry : CurtainsBlocks.ROD_BLOCKS.entrySet()) {
+            if (entry.getValue() == this) {
+                Item rodItem = CurtainsItems.ROD_ITEMS.get(entry.getKey());
+                if (rodItem != null) {
+                    return new ItemStack(rodItem);
+                }
+            }
+        }
+
+        return super.getCloneItemStack(level, pos, state, includeData);
     }
 
     @Override

@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "softcurtains:white_curtain",
+    "minecraft:white_dye"
+  ],
+  "result": {
+    "id": "softcurtains:white_curtain"
+  }
+}

@@ -490,11 +490,11 @@ public class CurtainBlockEntity extends BlockEntity {
 
         if (maxPower != this.lastRedstonePower) {
             this.lastRedstonePower = maxPower;
-            int speedTicks = Math.max(6, 50 - (maxPower * 2));
             if (maxPower > 0) {
+                int speedTicks = Math.max(6, 50 - (maxPower * 2));
                 this.animateTo(1.0f, speedTicks);
             } else {
-                this.animateTo(0.15f, speedTicks);
+                this.animateTo(0.15f, 25);
             }
         }
     }

@@ -34,8 +34,6 @@ public class BlockStateValidationMixin {
         });
     }
 
-    //cancelling the entire validation is very risky, todo: cancel only curtain block and item validation
-
     @Mixin(targets = "net.minecraft.client.data.models.ModelProvider$BlockStateGeneratorCollector")
     public static class BlockStateCollectorMixin {
         @Inject(method = "validate", at = @At("HEAD"), cancellable = true)

@@ -79,12 +79,14 @@ public class SoftCurtainsMain implements ModInitializer {
                     }
                 }));
 
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
+            entries.accept(CurtainsItems.TAILORING_SHEARS);
+        });
+
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
             for (RodMaterial material : RodMaterial.values()) {
                 entries.accept(CurtainsItems.ROD_ITEMS.get(material));
             }
-
-            entries.accept(CurtainsItems.TAILORING_SHEARS);
 
             for (CurtainStyle style : CurtainStyle.values()) {
                 for (Item curtainItem : CurtainsItems.CURTAINS.values()) {

@@ -9,9 +9,11 @@ import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.minecraft.client.data.models.BlockModelGenerators;
 import net.minecraft.client.data.models.ItemModelGenerators;
 import net.minecraft.client.data.models.model.ItemModelUtils;
+import net.minecraft.client.data.models.model.ModelTemplate;
 import net.minecraft.client.data.models.model.ModelTemplates;
 import net.minecraft.client.data.models.model.TextureMapping;
 import net.minecraft.client.data.models.model.TextureSlot;
+import net.minecraft.client.renderer.item.ItemModel;
 import net.minecraft.client.resources.model.sprite.Material;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -19,7 +21,15 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 
+import java.util.Optional;
+
 public class CurtainModelProvider extends FabricModelProvider {
+
+    private static final ModelTemplate FLAT_LAYER0 = new ModelTemplate(
+            Optional.of(Identifier.withDefaultNamespace("item/generated")),
+            Optional.empty(),
+            TextureSlot.LAYER0
+    );
 
     public CurtainModelProvider(FabricPackOutput output) {
         super(output);
@@ -36,13 +46,17 @@ public class CurtainModelProvider extends FabricModelProvider {
 
     @Override
     public void generateItemModels(ItemModelGenerators generator) {
+        generator.generateFlatItem(CurtainsItems.TAILORING_SHEARS, ModelTemplates.FLAT_ITEM);
+
+        Identifier drapesModel = createFlatModel(generator, "curtain_drapes");
+        createFlatModel(generator, "curtain_blinds");
+        createFlatModel(generator, "curtain_shutters");
+        createFlatModel(generator, "curtain_roller");
+
         for (DyeColor color : DyeColor.values()) {
             Item curtainItem = CurtainsItems.CURTAINS.get(color);
             if (curtainItem != null) {
-                TextureMapping textureMapping = new TextureMapping()
-                        .put(TextureSlot.LAYER0, new Material(Identifier.withDefaultNamespace("block/" + color.getSerializedName() + "_wool")));
-                Identifier model = ModelTemplates.FLAT_ITEM.create(curtainItem, textureMapping, generator.modelOutput);
-                generator.itemModelOutput.accept(curtainItem, ItemModelUtils.plainModel(model));
+                generator.itemModelOutput.accept(curtainItem, ItemModelUtils.plainModel(drapesModel));
             }
         }
 
@@ -56,5 +70,15 @@ public class CurtainModelProvider extends FabricModelProvider {
                 generator.itemModelOutput.accept(rodItem, ItemModelUtils.plainModel(invBlockModel));
             }
         }
+    }
+
+    private Identifier createFlatModel(ItemModelGenerators generator, String name) {
+        TextureMapping mapping = new TextureMapping()
+                .put(TextureSlot.LAYER0, new Material(Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "item/" + name)));
+        return FLAT_LAYER0.create(
+                Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "item/" + name),
+                mapping,
+                generator.modelOutput
+        );
     }
 }

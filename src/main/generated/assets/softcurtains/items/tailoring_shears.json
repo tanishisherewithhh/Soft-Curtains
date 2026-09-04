@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "softcurtains:item/curtain"
+    "model": "softcurtains:item/tailoring_shears"
   }
 }

@@ -1,20 +1,20 @@
 {
   "item.softcurtains.tailoring_shears": "Tailoring Shears",
 
-  "block.softcurtains.oak_curtain_rod": "Oak Curtain Rod",
-  "block.softcurtains.spruce_curtain_rod": "Spruce Curtain Rod",
-  "block.softcurtains.birch_curtain_rod": "Birch Curtain Rod",
-  "block.softcurtains.jungle_curtain_rod": "Jungle Curtain Rod",
-  "block.softcurtains.acacia_curtain_rod": "Acacia Curtain Rod",
-  "block.softcurtains.dark_oak_curtain_rod": "Dark Oak Curtain Rod",
-  "block.softcurtains.mangrove_curtain_rod": "Mangrove Curtain Rod",
-  "block.softcurtains.cherry_curtain_rod": "Cherry Curtain Rod",
-  "block.softcurtains.bamboo_curtain_rod": "Bamboo Curtain Rod",
-  "block.softcurtains.crimson_curtain_rod": "Crimson Curtain Rod",
-  "block.softcurtains.warped_curtain_rod": "Warped Curtain Rod",
-  "block.softcurtains.iron_curtain_rod": "Iron Curtain Rod",
-  "block.softcurtains.gold_curtain_rod": "Gold Curtain Rod",
-  "block.softcurtains.copper_curtain_rod": "Copper Curtain Rod",
+  "item.softcurtains.oak_curtain_rod": "Oak Curtain Rod",
+  "item.softcurtains.spruce_curtain_rod": "Spruce Curtain Rod",
+  "item.softcurtains.birch_curtain_rod": "Birch Curtain Rod",
+  "item.softcurtains.jungle_curtain_rod": "Jungle Curtain Rod",
+  "item.softcurtains.acacia_curtain_rod": "Acacia Curtain Rod",
+  "item.softcurtains.dark_oak_curtain_rod": "Dark Oak Curtain Rod",
+  "item.softcurtains.mangrove_curtain_rod": "Mangrove Curtain Rod",
+  "item.softcurtains.cherry_curtain_rod": "Cherry Curtain Rod",
+  "item.softcurtains.bamboo_curtain_rod": "Bamboo Curtain Rod",
+  "item.softcurtains.crimson_curtain_rod": "Crimson Curtain Rod",
+  "item.softcurtains.warped_curtain_rod": "Warped Curtain Rod",
+  "item.softcurtains.iron_curtain_rod": "Iron Curtain Rod",
+  "item.softcurtains.gold_curtain_rod": "Gold Curtain Rod",
+  "item.softcurtains.copper_curtain_rod": "Copper Curtain Rod",
 
   "item.softcurtains.white_curtain": "White Curtain",
   "item.softcurtains.orange_curtain": "Orange Curtain",
@@ -32,6 +32,7 @@
   "item.softcurtains.green_curtain": "Green Curtain",
   "item.softcurtains.red_curtain": "Red Curtain",
   "item.softcurtains.black_curtain": "Black Curtain",
+  "item.softcurtains.cherry_curtain": "Cherry Curtain",
 
   "item.softcurtains.white_curtain.blinds": "White Blinds",
   "item.softcurtains.orange_curtain.blinds": "Orange Blinds",
@@ -49,6 +50,7 @@
   "item.softcurtains.green_curtain.blinds": "Green Blinds",
   "item.softcurtains.red_curtain.blinds": "Red Blinds",
   "item.softcurtains.black_curtain.blinds": "Black Blinds",
+  "item.softcurtains.cherry_curtain.blinds": "Cherry Blinds",
 
   "item.softcurtains.white_curtain.shutters": "White Shutters",
   "item.softcurtains.orange_curtain.shutters": "Orange Shutters",
@@ -66,6 +68,7 @@
   "item.softcurtains.green_curtain.shutters": "Green Shutters",
   "item.softcurtains.red_curtain.shutters": "Red Shutters",
   "item.softcurtains.black_curtain.shutters": "Black Shutters",
+  "item.softcurtains.cherry_curtain.shutters": "Cherry Shutters",
 
   "item.softcurtains.white_curtain.roller": "White Roller Shade",
   "item.softcurtains.orange_curtain.roller": "Orange Roller Shade",
@@ -82,5 +85,6 @@
   "item.softcurtains.brown_curtain.roller": "Brown Roller Shade",
   "item.softcurtains.green_curtain.roller": "Green Roller Shade",
   "item.softcurtains.red_curtain.roller": "Red Roller Shade",
-  "item.softcurtains.black_curtain.roller": "Black Roller Shade"
+  "item.softcurtains.black_curtain.roller": "Black Roller Shade",
+  "item.softcurtains.cherry_curtain.roller": "Cherry Roller Shade"
 }

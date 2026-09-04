@@ -20,7 +20,7 @@ public class CurtainRenderState extends BlockEntityRenderState {
     public float openProgress;
     public CurtainStyle style = CurtainStyle.DRAPES;
     public float swayZ;
-    public int lightCoords;
+    public int[] lightLevels;
     public float minX;
     public float maxX;
 }
