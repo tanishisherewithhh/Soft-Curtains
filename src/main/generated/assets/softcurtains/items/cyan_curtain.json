@@ -1,6 +1,70 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "softcurtains:item/curtain_drapes"
+    "type": "minecraft:select",
+    "cases": [
+      {
+        "model": {
+          "type": "minecraft:model",
+          "model": "softcurtains:item/curtain_drapes",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": -15295332
+            }
+          ]
+        },
+        "when": "drapes"
+      },
+      {
+        "model": {
+          "type": "minecraft:model",
+          "model": "softcurtains:item/curtain_blinds",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": -15295332
+            }
+          ]
+        },
+        "when": "blinds"
+      },
+      {
+        "model": {
+          "type": "minecraft:model",
+          "model": "softcurtains:item/curtain_shutters",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": -15295332
+            }
+          ]
+        },
+        "when": "shutters"
+      },
+      {
+        "model": {
+          "type": "minecraft:model",
+          "model": "softcurtains:item/curtain_roller",
+          "tints": [
+            {
+              "type": "minecraft:constant",
+              "value": -15295332
+            }
+          ]
+        },
+        "when": "roller"
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "softcurtains:item/curtain_drapes",
+      "tints": [
+        {
+          "type": "minecraft:constant",
+          "value": -15295332
+        }
+      ]
+    },
+    "property": "softcurtains:curtain_style"
   }
 }

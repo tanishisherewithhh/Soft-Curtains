@@ -56,4 +56,5 @@ public abstract class CustomModelProviderMixin {
             original.call(instance);
         }
     }
+
 }

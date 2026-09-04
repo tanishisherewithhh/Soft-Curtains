@@ -34,6 +34,7 @@ public class BlockStateValidationMixin {
         });
     }
 
+
     @Mixin(targets = "net.minecraft.client.data.models.ModelProvider$BlockStateGeneratorCollector")
     public static class BlockStateCollectorMixin {
         @Inject(method = "validate", at = @At("HEAD"), cancellable = true)
@@ -49,4 +50,5 @@ public class BlockStateValidationMixin {
             ci.cancel();
         }
     }
+
 }

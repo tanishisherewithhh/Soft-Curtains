@@ -7,6 +7,7 @@ import com.tanishisherewith.SoftCurtainsMain;
 import com.tanishisherewith.block.CurtainRodBlock;
 import com.tanishisherewith.client.state.CurtainRenderState;
 import com.tanishisherewith.entity.CurtainBlockEntity;
+import io.netty.util.internal.MathUtil;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -142,30 +143,34 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             return unpackRgb(c);
         }
 
-        float pos = Mth.clamp(vProgress, 0.0f, 0.9999f) * count;
-        int idx = (int) pos;
-        float frac = pos - idx;
+        float pos = Mth.clamp(vProgress, 0.0f, 1.0f) * count;
 
-        int c0 = state.segmentColors.get(idx);
+        float halfBlend = 0.15f;
+        int boundary = Math.round(pos);
 
-        float blendStart = 0.70f;
-        if (frac <= blendStart || idx >= count - 1) {
-            return unpackRgb(c0);
+        // Blend across internal boundaries
+        if (boundary >= 1 && boundary < count) {
+            float dist = pos - (float) boundary;
+            if (Math.abs(dist) < halfBlend) {
+                int c0 = state.segmentColors.get(boundary - 1);
+                int c1 = state.segmentColors.get(boundary);
+
+                float rawT = (dist + halfBlend) / (2.0f * halfBlend);
+                float t = rawT * rawT * (3.0f - 2.0f * rawT);
+
+                float[] rgb0 = unpackRgb(c0);
+                float[] rgb1 = unpackRgb(c1);
+
+                float r = (float) Math.sqrt(Mth.lerp(t, rgb0[0] * rgb0[0], rgb1[0] * rgb1[0]));
+                float g = (float) Math.sqrt(Mth.lerp(t, rgb0[1] * rgb0[1], rgb1[1] * rgb1[1]));
+                float b = (float) Math.sqrt(Mth.lerp(t, rgb0[2] * rgb0[2], rgb1[2] * rgb1[2]));
+
+                return new float[]{r, g, b};
+            }
         }
 
-        int c1 = state.segmentColors.get(idx + 1);
-
-        float rawT = (frac - blendStart) / (1.0f - blendStart);
-        float t = rawT * rawT * (3.0f - 2.0f * rawT);
-
-        float[] rgb0 = unpackRgb(c0);
-        float[] rgb1 = unpackRgb(c1);
-
-        float r = (float) Math.sqrt(Mth.lerp(t, rgb0[0] * rgb0[0], rgb1[0] * rgb1[0]));
-        float g = (float) Math.sqrt(Mth.lerp(t, rgb0[1] * rgb0[1], rgb1[1] * rgb1[1]));
-        float b = (float) Math.sqrt(Mth.lerp(t, rgb0[2] * rgb0[2], rgb1[2] * rgb1[2]));
-
-        return new float[]{r, g, b};
+        int segIndex = Mth.clamp((int) Math.floor(pos), 0, count - 1);
+        return unpackRgb(state.segmentColors.get(segIndex));
     }
 
     private static float[] unpackRgb(int rgb) {
@@ -351,7 +356,8 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             float topY = CurtainBlockEntity.CURTAIN_TOP_Y;
             float panelH = (float) state.length;
 
-            float swingPitch = (float) Math.toRadians(state.openProgress * 85.0f);
+            float mappedProgress = Mth.clampedMap(state.openProgress,0.15f,1.0f,0.0f,1.0f);
+            float swingPitch = (float) Math.toRadians(mappedProgress * 85.0f);
             float cos = (float) Math.cos(swingPitch);
             float sin = (float) Math.sin(swingPitch);
 

@@ -22,6 +22,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import org.jspecify.annotations.Nullable;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -210,6 +213,7 @@ public class CurtainBlockEntity extends BlockEntity {
 
         float nextTarget = (this.targetOpenProgress > 0.5f) ? 0.15f : 1.0f;
         this.animateTo(nextTarget, 30);
+        this.playCurtainSound(this.targetOpenProgress < 0.5f);
     }
 
     public void ensureGrid() {
@@ -497,6 +501,31 @@ public class CurtainBlockEntity extends BlockEntity {
                 this.animateTo(0.15f, 25);
             }
         }
+    }
+
+    public void playCurtainSound(boolean opening) {
+        if (this.level == null || this.level.isClientSide()) {
+            return;
+        }
+
+        SoundEvent sound = switch (this.getStyle()) {
+            case DRAPES, ROLLER -> SoundEvents.BUNDLE_INSERT;
+            case BLINDS -> SoundEvents.SCAFFOLDING_STEP;
+            case SHUTTERS -> SoundEvents.BAMBOO_WOOD_STEP;
+        };
+
+        float volume = 0.45f;
+        float pitch = opening ? 0.95f : 0.85f;
+        pitch += (this.level.getRandom().nextFloat() - 0.5f) * 0.08f;
+
+        this.level.playSound(
+                null,
+                this.worldPosition,
+                sound,
+                SoundSource.BLOCKS,
+                volume,
+                pitch
+        );
     }
 
     public float getMeshX(int ix, int iy, float tickDelta) {
