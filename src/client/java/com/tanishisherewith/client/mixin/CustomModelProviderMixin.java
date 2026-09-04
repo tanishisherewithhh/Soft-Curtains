@@ -19,14 +19,6 @@ import java.util.concurrent.CompletableFuture;
 @Mixin(ModelProvider.class)
 public abstract class CustomModelProviderMixin {
 
-    @Inject(method = "run", at = @At("HEAD"))
-    private void bootstrapItemModels(CachedOutput cache, CallbackInfoReturnable<CompletableFuture<?>> cir) {
-        try {
-            ItemModels.bootstrap();
-        } catch (Throwable ignored) {
-        }
-    }
-
     @WrapOperation(
             method = "run",
             at = @At(

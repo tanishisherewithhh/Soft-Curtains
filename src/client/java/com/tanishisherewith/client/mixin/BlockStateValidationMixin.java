@@ -28,10 +28,9 @@ public class BlockStateValidationMixin {
             Stream<Holder.Reference<Block>> stream,
             Predicate<Holder.Reference<Block>> predicate
     ) {
-        return stream.filter(predicate).filter(holder -> {
-            Identifier id = holder.key().identifier();
-            return !id.getNamespace().equals(SoftCurtainsMain.MOD_ID);
-        });
+        return stream.filter(predicate).filter(holder ->
+                holder.key().identifier().getNamespace().equals(SoftCurtainsMain.MOD_ID)
+        );
     }
 
 

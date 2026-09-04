@@ -34,9 +34,6 @@ public class CurtainModelProvider extends FabricModelProvider {
     //Need to bootstrap the client so that CurtainStyleProperty is registered in the SelectItemModelProperties registry
     static {
         ClientBootstrap.bootstrap();
-        CurtainsBlocks.register();
-        CurtainsItems.register();
-
         try {
             SelectItemModelProperties.ID_MAPPER.put(
                     SoftCurtainsMain.id("curtain_style"),
