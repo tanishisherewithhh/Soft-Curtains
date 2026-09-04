@@ -18,7 +18,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.CreativeModeTabs;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -56,11 +55,13 @@ public class SoftCurtainsMain implements ModInitializer {
 
                         if (anchorState.getBlock() instanceof CurtainRodBlock) {
                             Direction facing = anchorState.getValue(CurtainRodBlock.FACING);
-                            Direction stepDir = anchorCurtain.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
-                            int span = anchorCurtain.span;
+                            Direction stepDir = anchorCurtain.isExpandRight() ? facing.getClockWise() : facing.getCounterClockWise();
+                            int span = anchorCurtain.getSpan();
                             float globalProgress = Mth.clamp(payload.openProgress(), 0.15f, 1.0f);
 
                             anchorCurtain.openProgress = globalProgress;
+                            anchorCurtain.targetOpenProgress = globalProgress;
+                            anchorCurtain.isAnimating = false;
                             anchorCurtain.setChanged();
                             level.sendBlockUpdated(anchorPos, anchorState, anchorState, Block.UPDATE_CLIENTS);
 
@@ -71,6 +72,8 @@ public class SoftCurtainsMain implements ModInitializer {
 
                                 if (sliceBe instanceof CurtainBlockEntity slice) {
                                     slice.openProgress = globalProgress;
+                                    slice.targetOpenProgress = globalProgress;
+                                    slice.isAnimating = false;
                                     slice.setChanged();
                                     level.sendBlockUpdated(slicePos, sliceState, sliceState, Block.UPDATE_CLIENTS);
                                 }

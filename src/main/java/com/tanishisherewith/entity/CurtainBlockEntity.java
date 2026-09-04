@@ -331,8 +331,52 @@ public class CurtainBlockEntity extends BlockEntity {
         if (level.isClientSide()) {
             if (be.style == CurtainStyle.DRAPES) {
                 be.tickDrapeClothPhysics(level, pos, state);
+            } else if (be.style == CurtainStyle.ROLLER) {
+                be.tickRollerClothPhysics(level, pos, state);
             } else {
                 be.tickRigidPendulumPhysics(level, pos, state);
+            }
+        }
+    }
+
+    private void tickRollerClothPhysics(Level level, BlockPos pos, BlockState state) {
+        float[] bounds = this.getUsableHorizontalBounds();
+        float minX = bounds[0];
+        float maxX = bounds[1];
+        int gw = this.allocatedW;
+        float totalHeight = (float) this.length - (1.0f - CURTAIN_TOP_Y);
+
+        float exposure = calculateExposure(level, pos, state.getValue(CurtainRodBlock.FACING));
+        float windZ = getWindZ(level, pos, exposure);
+        long time = level.getGameTime();
+
+        float deployFactor = 1.0f - this.openProgress;
+
+        for (int ix = 0; ix < gw; ix++) {
+            float u = (float) ix / (gw - 1);
+            float targetX = Mth.lerp(u, minX, maxX);
+
+            float wavePhase = (u * 4.0f) + (time * 0.08f);
+            float horizWave = (float) Math.sin(wavePhase) * 0.012f * exposure * deployFactor;
+
+            for (int iy = 0; iy < GRID_H; iy++) {
+                float v = (float) iy / (GRID_H - 1);
+                float targetY = CURTAIN_TOP_Y - (v * totalHeight);
+
+                this.prevX[ix][iy] = this.posX[ix][iy];
+                this.prevY[ix][iy] = this.posY[ix][iy];
+                this.prevZ[ix][iy] = this.posZ[ix][iy];
+
+                float billowShape = (float) Math.sin(v * Math.PI) * (1.0f - (2.0f * (u - 0.5f) * (u - 0.5f)));
+                float billowZ = windZ * billowShape * 1.8f * deployFactor;
+
+                float hemSway = windZ * (v * v) * 0.7f * deployFactor;
+
+                float targetZ = (billowZ + hemSway + (horizWave * v));
+
+                this.posX[ix][iy] = targetX;
+                this.posY[ix][iy] = targetY;
+                this.posZ[ix][iy] = Mth.lerp(0.18f, this.posZ[ix][iy], targetZ);
             }
         }
     }
@@ -518,14 +562,27 @@ public class CurtainBlockEntity extends BlockEntity {
         float pitch = opening ? 0.95f : 0.85f;
         pitch += (this.level.getRandom().nextFloat() - 0.5f) * 0.08f;
 
-        this.level.playSound(
-                null,
-                this.worldPosition,
-                sound,
-                SoundSource.BLOCKS,
-                volume,
-                pitch
-        );
+        if (this.level.isClientSide()) {
+            this.level.playLocalSound(
+                    this.worldPosition.getX() + 0.5,
+                    this.worldPosition.getY() + 0.5,
+                    this.worldPosition.getZ() + 0.5,
+                    sound,
+                    SoundSource.BLOCKS,
+                    volume,
+                    pitch,
+                    false
+            );
+        } else {
+            this.level.playSound(
+                    null,
+                    this.worldPosition,
+                    sound,
+                    SoundSource.BLOCKS,
+                    volume,
+                    pitch
+            );
+        }
     }
 
     public float getMeshX(int ix, int iy, float tickDelta) {

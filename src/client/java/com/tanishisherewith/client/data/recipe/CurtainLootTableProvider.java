@@ -1,4 +1,4 @@
-package com.tanishisherewith.client.data;
+package com.tanishisherewith.client.data.recipe;
 
 import com.tanishisherewith.registry.CurtainsBlocks;
 import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;

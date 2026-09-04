@@ -1,7 +1,7 @@
 package com.tanishisherewith.client;
 
 import com.tanishisherewith.SoftCurtainsMain;
-import com.tanishisherewith.client.data.CurtainStyleProperty;
+import com.tanishisherewith.client.data.style.CurtainStyleProperty;
 import com.tanishisherewith.client.renderer.CurtainBlockEntityRenderer;
 import com.tanishisherewith.registry.CurtainsBlockEntities;
 import net.fabricmc.api.ClientModInitializer;

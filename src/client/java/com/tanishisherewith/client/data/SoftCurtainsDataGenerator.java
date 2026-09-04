@@ -1,5 +1,8 @@
 package com.tanishisherewith.client.data;
 
+import com.tanishisherewith.client.data.provider.CurtainModelProvider;
+import com.tanishisherewith.client.data.recipe.CurtainLootTableProvider;
+import com.tanishisherewith.client.data.recipe.CurtainRecipeProvider;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 

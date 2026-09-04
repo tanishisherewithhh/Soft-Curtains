@@ -1,4 +1,4 @@
-package com.tanishisherewith.client.data;
+package com.tanishisherewith.client.data.generator;
 
 import com.tanishisherewith.SoftCurtainsMain;
 import com.tanishisherewith.block.CurtainRodBlock;

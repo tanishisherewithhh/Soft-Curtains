@@ -1,8 +1,9 @@
-package com.tanishisherewith.client.data;
+package com.tanishisherewith.client.data.provider;
 
 import com.tanishisherewith.SoftCurtainsMain;
-import com.tanishisherewith.block.CurtainRodBlock;
 import com.tanishisherewith.block.RodMaterial;
+import com.tanishisherewith.client.data.generator.CurtainRodModelGenerator;
+import com.tanishisherewith.client.data.style.CurtainStyleProperty;
 import com.tanishisherewith.entity.CurtainStyle;
 import com.tanishisherewith.registry.CurtainsBlocks;
 import com.tanishisherewith.registry.CurtainsItems;
@@ -18,10 +19,8 @@ import net.minecraft.client.data.models.model.ModelTemplates;
 import net.minecraft.client.data.models.model.TextureMapping;
 import net.minecraft.client.data.models.model.TextureSlot;
 import net.minecraft.client.renderer.item.ItemModel;
-import net.minecraft.client.renderer.item.SelectItemModel;
 import net.minecraft.client.renderer.item.properties.select.SelectItemModelProperties;
 import net.minecraft.client.resources.model.sprite.Material;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;

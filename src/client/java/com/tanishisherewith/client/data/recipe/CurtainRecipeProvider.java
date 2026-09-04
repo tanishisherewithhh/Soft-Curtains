@@ -1,4 +1,4 @@
-package com.tanishisherewith.client.data;
+package com.tanishisherewith.client.data.recipe;
 
 import com.tanishisherewith.block.RodMaterial;
 import com.tanishisherewith.registry.CurtainsBlocks;

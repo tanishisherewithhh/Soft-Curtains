@@ -1,4 +1,4 @@
-package com.tanishisherewith.client.data;
+package com.tanishisherewith.client.data.style;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;

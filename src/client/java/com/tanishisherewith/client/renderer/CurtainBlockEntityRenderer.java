@@ -148,7 +148,6 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
         float halfBlend = 0.15f;
         int boundary = Math.round(pos);
 
-        // Blend across internal boundaries
         if (boundary >= 1 && boundary < count) {
             float dist = pos - (float) boundary;
             if (Math.abs(dist) < halfBlend) {
@@ -250,8 +249,9 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             float slatSpacing = totalHangLength / (float) totalSlats;
             float bottomY = topY - ((totalSlats - 1) * slatSpacing);
 
+            float mappedProgress = Mth.clampedMap(state.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
             float slatDepth = (slatSpacing / (float) Math.sin(Math.toRadians(84.0f))) * 1.25f;
-            float pitchAngle = (float) Math.toRadians(state.openProgress * 84.0f);
+            float pitchAngle = (float) Math.toRadians(mappedProgress * 84.0f);
 
             int segCount = state.segmentColors.size();
 
@@ -354,9 +354,10 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             float x1 = state.maxX;
 
             float topY = CurtainBlockEntity.CURTAIN_TOP_Y;
-            float panelH = (float) state.length;
 
-            float mappedProgress = Mth.clampedMap(state.openProgress,0.15f,1.0f,0.0f,1.0f);
+            float panelH = (float) state.length - (1.0f - topY);
+
+            float mappedProgress = Mth.clampedMap(state.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
             float swingPitch = (float) Math.toRadians(mappedProgress * 85.0f);
             float cos = (float) Math.cos(swingPitch);
             float sin = (float) Math.sin(swingPitch);
@@ -466,7 +467,8 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             float targetFloorY = 1.0f - (float) state.length;
             float fullTravelDistance = rodCenterY - targetFloorY;
 
-            float deployFactor = Mth.clamp(1.0f - state.openProgress, 0.0f, 1.0f);
+            float progress = Mth.clampedMap(state.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
+            float deployFactor = 1.0f - progress;
             float visibleLength = fullTravelDistance * deployFactor;
             float botY = rodCenterY - visibleLength;
 
@@ -481,6 +483,8 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             int spoolLight = getLightForProgress(state, 0.0f);
 
             int rollSegments = 12;
+            float[] spoolEndColor = new float[]{rollColor[0] * 0.85f, rollColor[1] * 0.85f, rollColor[2] * 0.85f};
+
             for (int seg = 0; seg < rollSegments; seg++) {
                 float a0 = rollAngleOffset + (float) (seg * 2.0 * Math.PI / rollSegments);
                 float a1 = rollAngleOffset + (float) ((seg + 1) * 2.0 * Math.PI / rollSegments);
@@ -502,16 +506,33 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                         x1, y1, z1, u1, 1.0f,
                         x0, y1, z1, u1, 0.0f,
                         rollColor, 0.0f, ny, nz, spoolLight, overlay);
+
+                putQuadUniformColor(matrix, buffer,
+                        x0, rodCenterY, rodCenterZ, 0.0f, 0.0f,
+                        x0, y1, z1,                 0.0f, 0.0f,
+                        x0, y0, z0,                 0.0f, 0.0f,
+                        x0, rodCenterY, rodCenterZ, 0.0f, 0.0f,
+                        spoolEndColor, -1.0f, 0.0f, 0.0f, spoolLight, overlay);
+
+                putQuadUniformColor(matrix, buffer,
+                        x1, rodCenterY, rodCenterZ, 0.0f, 0.0f,
+                        x1, y0, z0,                 0.0f, 0.0f,
+                        x1, y1, z1,                 0.0f, 0.0f,
+                        x1, rodCenterY, rodCenterZ, 0.0f, 0.0f,
+                        spoolEndColor, 1.0f, 0.0f, 0.0f, spoolLight, overlay);
             }
 
             float sheetTopZ = rodCenterZ + currentRadius;
-            float swayFactor = deployFactor;
-            float botZ = sheetTopZ + (state.swayZ * swayFactor);
-            float barZB = botZ - BASE_THICKNESS;
 
-            if (visibleLength > 0.001f) {
+            if (visibleLength > 0.001f && state.meshZ != null) {
                 int verticalSlices = Math.max(4, Math.round(visibleLength * 12));
+                int horizontalColumns = Math.max(4, state.span * 4);
+
                 float sliceHeight = visibleLength / verticalSlices;
+                float colWidth = (x1 - x0) / horizontalColumns;
+
+                int meshW = state.meshZ.length;
+                int meshH = CurtainBlockEntity.GRID_H;
 
                 for (int s = 0; s < verticalSlices; s++) {
                     float localFrac0 = (float) s / verticalSlices;
@@ -523,11 +544,8 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                     float yTopSlice = rodCenterY - (s * sliceHeight);
                     float yBotSlice = rodCenterY - ((s + 1) * sliceHeight);
 
-                    float zTopSlice = Mth.lerp(localFrac0, sheetTopZ, botZ);
-                    float zBotSlice = Mth.lerp(localFrac1, sheetTopZ, botZ);
-
-                    float zTopSliceBack = zTopSlice - BASE_THICKNESS;
-                    float zBotSliceBack = zBotSlice - BASE_THICKNESS;
+                    int iy0 = Mth.clamp(Math.round(localFrac0 * (meshH - 1)), 0, meshH - 1);
+                    int iy1 = Mth.clamp(Math.round(localFrac1 * (meshH - 1)), 0, meshH - 1);
 
                     float[] c0 = getBlendedColor(state, vProg0);
                     float[] c1 = getBlendedColor(state, vProg1);
@@ -537,52 +555,80 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
 
                     int sliceLight = getLightForProgress(state, vProg0);
 
-                    putQuad(matrix, buffer,
-                            x0, yTopSlice, zTopSlice, 0.0f, uvV0, c0,
-                            x1, yTopSlice, zTopSlice, (float) state.span, uvV0, c0,
-                            x1, yBotSlice, zBotSlice, (float) state.span, uvV1, c1,
-                            x0, yBotSlice, zBotSlice, 0.0f, uvV1, c1,
-                            0.0f, 0.0f, 1.0f, sliceLight, overlay);
+                    for (int c = 0; c < horizontalColumns; c++) {
+                        float colFrac0 = (float) c / horizontalColumns;
+                        float colFrac1 = (float) (c + 1) / horizontalColumns;
 
-                    float[] bc0 = new float[]{c0[0] * 0.95f, c0[1] * 0.95f, c0[2] * 0.95f};
-                    float[] bc1 = new float[]{c1[0] * 0.95f, c1[1] * 0.95f, c1[2] * 0.95f};
+                        float cx0 = x0 + (c * colWidth);
+                        float cx1 = x0 + ((c + 1) * colWidth);
 
-                    putQuad(matrix, buffer,
-                            x1, yTopSlice, zTopSliceBack, (float) state.span, uvV0, bc0,
-                            x0, yTopSlice, zTopSliceBack, 0.0f, uvV0, bc0,
-                            x0, yBotSlice, zBotSliceBack, 0.0f, uvV1, bc1,
-                            x1, yBotSlice, zBotSliceBack, (float) state.span, uvV1, bc1,
-                            0.0f, 0.0f, -1.0f, sliceLight, overlay);
+                        int ix0 = Mth.clamp(Math.round(colFrac0 * (meshW - 1)), 0, meshW - 1);
+                        int ix1 = Mth.clamp(Math.round(colFrac1 * (meshW - 1)), 0, meshW - 1);
 
-                    float[] edgeC0 = new float[]{c0[0] * 0.90f, c0[1] * 0.90f, c0[2] * 0.90f};
-                    float[] edgeC1 = new float[]{c1[0] * 0.90f, c1[1] * 0.90f, c1[2] * 0.90f};
+                        float zTopL = sheetTopZ + state.meshZ[ix0][iy0];
+                        float zTopR = sheetTopZ + state.meshZ[ix1][iy0];
+                        float zBotR = sheetTopZ + state.meshZ[ix1][iy1];
+                        float zBotL = sheetTopZ + state.meshZ[ix0][iy1];
 
-                    putQuad(matrix, buffer,
-                            x0, yTopSlice, zTopSliceBack, 0.0f, uvV0, edgeC0,
-                            x0, yTopSlice, zTopSlice,     0.02f, uvV0, edgeC0,
-                            x0, yBotSlice, zBotSlice,     0.02f, uvV1, edgeC1,
-                            x0, yBotSlice, zBotSliceBack, 0.0f, uvV1, edgeC1,
-                            -1.0f, 0.0f, 0.0f, sliceLight, overlay);
+                        float uvU0 = colFrac0 * (float) state.span;
+                        float uvU1 = colFrac1 * (float) state.span;
 
-                    putQuad(matrix, buffer,
-                            x1, yTopSlice, zTopSlice,     0.0f, uvV0, edgeC0,
-                            x1, yTopSlice, zTopSliceBack, 0.02f, uvV0, edgeC0,
-                            x1, yBotSlice, zBotSliceBack, 0.02f, uvV1, edgeC1,
-                            x1, yBotSlice, zBotSlice,     0.0f, uvV1, edgeC1,
-                            1.0f, 0.0f, 0.0f, sliceLight, overlay);
+                        putQuad(matrix, buffer,
+                                cx0, yTopSlice, zTopL, uvU0, uvV0, c0,
+                                cx1, yTopSlice, zTopR, uvU1, uvV0, c0,
+                                cx1, yBotSlice, zBotR, uvU1, uvV1, c1,
+                                cx0, yBotSlice, zBotL, uvU0, uvV1, c1,
+                                0.0f, 0.0f, 1.0f, sliceLight, overlay);
+
+                        float[] bc0 = new float[]{c0[0] * 0.95f, c0[1] * 0.95f, c0[2] * 0.95f};
+                        float[] bc1 = new float[]{c1[0] * 0.95f, c1[1] * 0.95f, c1[2] * 0.95f};
+
+                        putQuad(matrix, buffer,
+                                cx1, yTopSlice, zTopR - BASE_THICKNESS, uvU1, uvV0, bc0,
+                                cx0, yTopSlice, zTopL - BASE_THICKNESS, uvU0, uvV0, bc0,
+                                cx0, yBotSlice, zBotL - BASE_THICKNESS, uvU0, uvV1, bc1,
+                                cx1, yBotSlice, zBotR - BASE_THICKNESS, uvU1, uvV1, bc1,
+                                0.0f, 0.0f, -1.0f, sliceLight, overlay);
+
+                        if (c == 0) {
+                            float[] edgeC0 = new float[]{c0[0] * 0.90f, c0[1] * 0.90f, c0[2] * 0.90f};
+                            float[] edgeC1 = new float[]{c1[0] * 0.90f, c1[1] * 0.90f, c1[2] * 0.90f};
+
+                            putQuad(matrix, buffer,
+                                    cx0, yTopSlice, zTopL - BASE_THICKNESS, 0.0f, uvV0, edgeC0,
+                                    cx0, yTopSlice, zTopL,                  0.02f, uvV0, edgeC0,
+                                    cx0, yBotSlice, zBotL,                  0.02f, uvV1, edgeC1,
+                                    cx0, yBotSlice, zBotL - BASE_THICKNESS, 0.0f, uvV1, edgeC1,
+                                    -1.0f, 0.0f, 0.0f, sliceLight, overlay);
+                        }
+
+                        if (c == horizontalColumns - 1) {
+                            float[] edgeC0 = new float[]{c0[0] * 0.90f, c0[1] * 0.90f, c0[2] * 0.90f};
+                            float[] edgeC1 = new float[]{c1[0] * 0.90f, c1[1] * 0.90f, c1[2] * 0.90f};
+
+                            putQuad(matrix, buffer,
+                                    cx1, yTopSlice, zTopR,                  0.0f, uvV0, edgeC0,
+                                    cx1, yTopSlice, zTopR - BASE_THICKNESS, 0.02f, uvV0, edgeC0,
+                                    cx1, yBotSlice, zBotR - BASE_THICKNESS, 0.02f, uvV1, edgeC1,
+                                    cx1, yBotSlice, zBotR,                  0.0f, uvV1, edgeC1,
+                                    1.0f, 0.0f, 0.0f, sliceLight, overlay);
+                        }
+
+                        if (s == verticalSlices - 1) {
+                            float[] endColor = getBlendedColor(state, 1.0f);
+                            float[] bottomCapColor = new float[]{endColor[0] * 0.75f, endColor[1] * 0.75f, endColor[2] * 0.75f};
+                            int botCapLight = getLightForProgress(state, 1.0f);
+
+                            putQuadUniformColor(matrix, buffer,
+                                    cx0, botY, zBotL,                  0.0f, 0.0f,
+                                    cx0, botY, zBotL - BASE_THICKNESS, 0.0f, 0.05f,
+                                    cx1, botY, zBotR - BASE_THICKNESS, 1.0f, 0.05f,
+                                    cx1, botY, zBotR,                  1.0f, 0.0f,
+                                    bottomCapColor, 0.0f, -1.0f, 0.0f, botCapLight, overlay);
+                        }
+                    }
                 }
             }
-
-            float[] endColor = getBlendedColor(state, 1.0f);
-            float[] bottomCapColor = new float[]{endColor[0] * 0.75f, endColor[1] * 0.75f, endColor[2] * 0.75f};
-            int botCapLight = getLightForProgress(state, 1.0f);
-
-            putQuadUniformColor(matrix, buffer,
-                    x0, botY, botZ, 0.0f, 0.0f,
-                    x1, botY, botZ, 1.0f, 0.0f,
-                    x1, botY, barZB, 1.0f, 0.05f,
-                    x0, botY, barZB, 0.0f, 0.05f,
-                    bottomCapColor, 0.0f, -1.0f, 0.0f, botCapLight, overlay);
         });
     }
 
