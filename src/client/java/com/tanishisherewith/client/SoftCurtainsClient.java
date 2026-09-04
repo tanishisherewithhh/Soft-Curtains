@@ -11,6 +11,10 @@ import net.minecraft.client.renderer.item.properties.select.SelectItemModelPrope
 public class SoftCurtainsClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+		SelectItemModelProperties.ID_MAPPER.put(
+				SoftCurtainsMain.id("curtain_style"),
+				CurtainStyleProperty.TYPE
+		);
 		BlockEntityRenderers.register(CurtainsBlockEntities.CURTAIN, CurtainBlockEntityRenderer::new);
 		CurtainDragController.register();
 	}
