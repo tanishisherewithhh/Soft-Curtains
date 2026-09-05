@@ -37,11 +37,13 @@ Power any curtain rod with redstone to open or close the whole curtain. Higher s
 ### Images
 Preview images can be found [here](.github/images).
 
-<img width="800" height="600" alt="Curtain drapes closing/opening" src="https://github.com/user-attachments/assets/393835c0-acff-4520-bcdf-6b88b8af8650" />
-<img width="600" height="450" alt="blinds_closing_opening" src="https://github.com/user-attachments/assets/db3c4f32-f241-43a9-bada-ca6efe0bcc28" />
-<img width="800" height="600" alt="shutters_closing_opening" src="https://github.com/user-attachments/assets/ec95f83a-eef0-4fc0-af31-ee04c0686b09" />
-<img width="800" height="600" alt="rolers_closing_opening" src="https://github.com/user-attachments/assets/3c104899-05bf-41dd-a029-330321ec1fbd" />
-<img width="800" height="600" alt="curtain style changing" src="https://github.com/user-attachments/assets/36f65c8e-55e9-4543-9571-a2f8e7100036" />
+| Drapes | Blinds |
+| :---: | :---: |
+| <img width="390" alt="Curtain drapes closing and opening" src="https://github.com/user-attachments/assets/393835c0-acff-4520-bcdf-6b88b8af8650" /> | <img width="390" alt="Blinds closing and opening" src="https://github.com/user-attachments/assets/db3c4f32-f241-43a9-bada-ca6efe0bcc28" /> |
+| **Shutters** | **Rollers** |
+| <img width="390" alt="Shutters closing and opening" src="https://github.com/user-attachments/assets/ec95f83a-eef0-4fc0-af31-ee04c0686b09" /> | <img width="390" alt="Rollers closing and opening" src="https://github.com/user-attachments/assets/3c104899-05bf-41dd-a029-330321ec1fbd" /> |
+| **Style Selection** | |
+| <img width="390" alt="Curtain style changing" src="https://github.com/user-attachments/assets/36f65c8e-55e9-4543-9571-a2f8e7100036" /> | |
 
 
 ### License
