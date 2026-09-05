@@ -271,17 +271,7 @@ public class CurtainDragController {
         double maxZ = Math.max(startZ, endZ);
 
         double topY = pos.getY() + CurtainBlockEntity.CURTAIN_TOP_Y;
-        double bottomY;
-
-        if (master.getStyle() == CurtainStyle.ROLLER) {
-            float progress = Mth.clampedMap(master.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
-            float deployFactor = 1.0f - progress;
-            float fullTravelDistance = CurtainBlockEntity.CURTAIN_TOP_Y - (1.0f - (float) master.getLength());
-            float visibleLength = fullTravelDistance * deployFactor;
-            bottomY = topY - visibleLength;
-        } else {
-            bottomY = pos.getY() - (master.getLength() - 1);
-        }
+        double bottomY = getBottomY(master, topY, pos);
 
         double depthPadding = 0.08;
         if (facing.getAxis() == Direction.Axis.Z) {
@@ -301,6 +291,24 @@ public class CurtainDragController {
         return new AABB(minX, bottomY, minZ, maxX, topY, maxZ);
     }
 
+    private static double getBottomY(CurtainBlockEntity master, double topY, BlockPos pos) {
+        double bottomY;
+
+        if (master.getStyle() == CurtainStyle.ROLLER) {
+            float progress = Mth.clampedMap(master.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
+            float deployFactor = 1.0f - progress;
+            float fullTravelDistance = CurtainBlockEntity.CURTAIN_TOP_Y - (1.0f - (float) master.getLength());
+            float visibleLength = fullTravelDistance * deployFactor;
+            bottomY = topY - visibleLength;
+        } else {
+            bottomY = pos.getY() - (master.getLength() - 1);
+        }
+        return bottomY;
+    }
+
+    public static boolean isDragging() {
+        return isDragging;
+    }
 
     private static double computeTrackDragSign(Minecraft client, CurtainBlockEntity masterCurtain, Direction facing) {
         Direction expDir = masterCurtain.expandRight ? facing.getClockWise() : facing.getCounterClockWise();

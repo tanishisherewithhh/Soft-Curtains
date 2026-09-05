@@ -55,6 +55,12 @@ public class CurtainRecipeProvider extends FabricRecipeProvider {
                     }
                 }
 
+                ShapelessRecipeBuilder.shapeless(itemLookup, RecipeCategory.TOOLS, CurtainsItems.TAILORING_SHEARS)
+                        .requires(Items.SHEARS)
+                        .requires(Items.IRON_INGOT)
+                        .unlockedBy("has_shears", has(Items.SHEARS))
+                        .save(output);
+
                 for (DyeColor color : DyeColor.values()) {
                     Item curtainItem = CurtainsItems.CURTAINS.get(color);
                     Item woolItem = Items.WOOL.pick(color);

@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "minecraft:shears",
+    "minecraft:iron_ingot"
+  ],
+  "result": {
+    "id": "softcurtains:tailoring_shears"
+  }
+}
