@@ -1,7 +1,7 @@
 {
   "type": "minecraft:crafting_shaped",
   "key": {
-    "#": "minecraft:birch_planks",
+    "#": "minecraft:pale_oak_planks",
     "S": "minecraft:stick"
   },
   "pattern": [
@@ -9,6 +9,6 @@
   ],
   "result": {
     "count": 3,
-    "id": "softcurtains:birch_curtain_rod"
+    "id": "softcurtains:pale_oak_curtain_rod"
   }
 }

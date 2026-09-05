@@ -62,10 +62,10 @@ public class CurtainModelProvider extends FabricModelProvider {
     public void generateItemModels(ItemModelGenerators generator) {
         generator.generateFlatItem(CurtainsItems.TAILORING_SHEARS, ModelTemplates.FLAT_ITEM);
 
-        Identifier drapesModel = createFlatModel(generator, "curtain_drapes");
-        Identifier blindsModel = createFlatModel(generator, "curtain_blinds");
-        Identifier shuttersModel = createFlatModel(generator, "curtain_shutters");
-        Identifier rollerModel = createFlatModel(generator, "curtain_roller");
+        Identifier drapesModel = createFlatModel(generator, "curtain_drapes_item");
+        Identifier blindsModel = createFlatModel(generator, "curtain_blinds_item");
+        Identifier shuttersModel = createFlatModel(generator, "curtain_shutters_item");
+        Identifier rollerModel = createFlatModel(generator, "curtain_roller_item");
 
         for (DyeColor color : DyeColor.values()) {
             Item curtainItem = CurtainsItems.CURTAINS.get(color);

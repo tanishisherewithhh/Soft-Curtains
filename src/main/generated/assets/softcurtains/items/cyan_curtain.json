@@ -5,7 +5,7 @@
       {
         "model": {
           "type": "minecraft:model",
-          "model": "softcurtains:item/curtain_drapes",
+          "model": "softcurtains:item/curtain_drapes_item",
           "tints": [
             {
               "type": "minecraft:constant",
@@ -18,7 +18,7 @@
       {
         "model": {
           "type": "minecraft:model",
-          "model": "softcurtains:item/curtain_blinds",
+          "model": "softcurtains:item/curtain_blinds_item",
           "tints": [
             {
               "type": "minecraft:constant",
@@ -31,7 +31,7 @@
       {
         "model": {
           "type": "minecraft:model",
-          "model": "softcurtains:item/curtain_shutters",
+          "model": "softcurtains:item/curtain_shutters_item",
           "tints": [
             {
               "type": "minecraft:constant",
@@ -44,7 +44,7 @@
       {
         "model": {
           "type": "minecraft:model",
-          "model": "softcurtains:item/curtain_roller",
+          "model": "softcurtains:item/curtain_roller_item",
           "tints": [
             {
               "type": "minecraft:constant",
@@ -57,7 +57,7 @@
     ],
     "fallback": {
       "type": "minecraft:model",
-      "model": "softcurtains:item/curtain_drapes",
+      "model": "softcurtains:item/curtain_drapes_item",
       "tints": [
         {
           "type": "minecraft:constant",

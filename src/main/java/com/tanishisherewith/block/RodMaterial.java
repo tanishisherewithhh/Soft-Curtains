@@ -1,5 +1,6 @@
 package com.tanishisherewith.block;
 
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -7,51 +8,58 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
 import org.jspecify.annotations.NonNull;
 
-public enum RodMaterial implements StringRepresentable {
-    OAK("oak", "minecraft:block/oak_planks", MapColor.WOOD, SoundType.WOOD),
-    SPRUCE("spruce", "minecraft:block/spruce_planks", MapColor.WOOD, SoundType.WOOD),
-    BIRCH("birch", "minecraft:block/birch_planks", MapColor.SAND, SoundType.WOOD),
-    JUNGLE("jungle", "minecraft:block/jungle_planks", MapColor.DIRT, SoundType.WOOD),
-    ACACIA("acacia", "minecraft:block/acacia_planks", MapColor.COLOR_ORANGE, SoundType.WOOD),
-    DARK_OAK("dark_oak", "minecraft:block/dark_oak_planks", MapColor.COLOR_BROWN, SoundType.WOOD),
-    MANGROVE("mangrove", "minecraft:block/mangrove_planks", MapColor.COLOR_RED, SoundType.WOOD),
-    CHERRY("cherry", "minecraft:block/cherry_planks", MapColor.TERRACOTTA_WHITE, SoundType.CHERRY_WOOD),
-    BAMBOO("bamboo", "minecraft:block/bamboo_planks", MapColor.COLOR_YELLOW, SoundType.BAMBOO_WOOD),
-    CRIMSON("crimson", "minecraft:block/crimson_planks", MapColor.CRIMSON_STEM, SoundType.NETHER_WOOD),
-    WARPED("warped", "minecraft:block/warped_planks", MapColor.WARPED_STEM, SoundType.NETHER_WOOD),
-    IRON("iron", "minecraft:block/iron_block", MapColor.METAL, SoundType.METAL),
-    GOLD("gold", "minecraft:block/gold_block", MapColor.GOLD, SoundType.METAL),
-    COPPER("copper", "minecraft:block/copper_block", MapColor.COLOR_ORANGE, SoundType.COPPER);
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Supplier;
 
-    private final String id;
-    private final String texture;
-    private final MapColor mapColor;
-    private final SoundType soundType;
+public record RodMaterial(
+        String id,
+        Identifier texture,
+        Supplier<Item> ingredientSupplier,
+        MapColor mapColor,
+        SoundType soundType,
+        boolean isWood
+) implements StringRepresentable {
 
-    RodMaterial(String id, String texture, MapColor mapColor, SoundType soundType) {
-        this.id = id;
-        this.texture = texture;
-        this.mapColor = mapColor;
-        this.soundType = soundType;
+    private static final Map<String, RodMaterial> REGISTRY = new LinkedHashMap<>();
+
+    public static RodMaterial registerWood(String id, Supplier<Item> planks, MapColor color, SoundType sound) {
+        Identifier textureId = Identifier.withDefaultNamespace("block/" + id + "_planks");
+        return register(id, textureId, planks, color, sound, true);
     }
 
+    public static RodMaterial registerMetal(String id, Supplier<Item> ingot, MapColor color, SoundType sound) {
+        Identifier textureId = Identifier.withDefaultNamespace("block/" + id + "_block");
+        return register(id, textureId, ingot, color, sound, false);
+    }
+
+    public static RodMaterial register(String id, Identifier texture, Supplier<Item> ingredient, MapColor mapColor, SoundType soundType, boolean isWood) {
+        RodMaterial material = new RodMaterial(id, texture, ingredient, mapColor, soundType, isWood);
+        REGISTRY.put(id, material);
+        return material;
+    }
+
+    public static final RodMaterial OAK = registerWood("oak", () -> Items.OAK_PLANKS, MapColor.WOOD, SoundType.WOOD);
+    public static final RodMaterial SPRUCE = registerWood("spruce", () -> Items.SPRUCE_PLANKS, MapColor.WOOD, SoundType.WOOD);
+    public static final RodMaterial BIRCH = registerWood("birch", () -> Items.BIRCH_PLANKS, MapColor.SAND, SoundType.WOOD);
+    public static final RodMaterial JUNGLE = registerWood("jungle", () -> Items.JUNGLE_PLANKS, MapColor.DIRT, SoundType.WOOD);
+    public static final RodMaterial ACACIA = registerWood("acacia", () -> Items.ACACIA_PLANKS, MapColor.COLOR_ORANGE, SoundType.WOOD);
+    public static final RodMaterial DARK_OAK = registerWood("dark_oak", () -> Items.DARK_OAK_PLANKS, MapColor.COLOR_BROWN, SoundType.WOOD);
+    public static final RodMaterial MANGROVE = registerWood("mangrove", () -> Items.MANGROVE_PLANKS, MapColor.COLOR_RED, SoundType.WOOD);
+    public static final RodMaterial CHERRY = registerWood("cherry", () -> Items.CHERRY_PLANKS, MapColor.TERRACOTTA_WHITE, SoundType.CHERRY_WOOD);
+    public static final RodMaterial BAMBOO = registerWood("bamboo", () -> Items.BAMBOO_PLANKS, MapColor.COLOR_YELLOW, SoundType.BAMBOO_WOOD);
+    public static final RodMaterial CRIMSON = registerWood("crimson", () -> Items.CRIMSON_PLANKS, MapColor.CRIMSON_STEM, SoundType.NETHER_WOOD);
+    public static final RodMaterial WARPED = registerWood("warped", () -> Items.WARPED_PLANKS, MapColor.WARPED_STEM, SoundType.NETHER_WOOD);
+    public static final RodMaterial PALE_OAK = registerWood("pale_oak", () -> Items.PALE_OAK_PLANKS, MapColor.COLOR_LIGHT_GRAY, SoundType.WOOD);
+
+    public static final RodMaterial IRON = registerMetal("iron", () -> Items.IRON_INGOT, MapColor.METAL, SoundType.METAL);
+    public static final RodMaterial GOLD = registerMetal("gold", () -> Items.GOLD_INGOT, MapColor.GOLD, SoundType.METAL);
+    public static final RodMaterial COPPER = registerMetal("copper", () -> Items.COPPER_INGOT, MapColor.COLOR_ORANGE, SoundType.COPPER);
+
     public Item getIngredientItem() {
-        return switch (this) {
-            case OAK -> Items.OAK_PLANKS;
-            case SPRUCE -> Items.SPRUCE_PLANKS;
-            case BIRCH -> Items.BIRCH_PLANKS;
-            case JUNGLE -> Items.JUNGLE_PLANKS;
-            case ACACIA -> Items.ACACIA_PLANKS;
-            case DARK_OAK -> Items.DARK_OAK_PLANKS;
-            case MANGROVE -> Items.MANGROVE_PLANKS;
-            case CHERRY -> Items.CHERRY_PLANKS;
-            case BAMBOO -> Items.BAMBOO_PLANKS;
-            case CRIMSON -> Items.CRIMSON_PLANKS;
-            case WARPED -> Items.WARPED_PLANKS;
-            case IRON -> Items.IRON_INGOT;
-            case GOLD -> Items.GOLD_INGOT;
-            case COPPER -> Items.COPPER_INGOT;
-        };
+        return this.ingredientSupplier.get();
     }
 
     public MapColor getMapColor() {
@@ -66,12 +74,20 @@ public enum RodMaterial implements StringRepresentable {
         return this.id;
     }
 
-    public String getTexture() {
+    public Identifier getTexture() {
         return this.texture;
     }
 
     @Override
     public @NonNull String getSerializedName() {
         return this.id;
+    }
+
+    public static Collection<RodMaterial> values() {
+        return Collections.unmodifiableCollection(REGISTRY.values());
+    }
+
+    public static RodMaterial byId(String id) {
+        return REGISTRY.get(id);
     }
 }

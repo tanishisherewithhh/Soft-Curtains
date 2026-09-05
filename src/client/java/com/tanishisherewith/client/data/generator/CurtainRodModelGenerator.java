@@ -105,7 +105,7 @@ public class CurtainRodModelGenerator {
     private static Identifier resolveTexture(String materialName) {
         for (RodMaterial mat : RodMaterial.values()) {
             if (mat.getId().equals(materialName)) {
-                return Identifier.parse(mat.getTexture());
+                return mat.getTexture();
             }
         }
         return Identifier.withDefaultNamespace("block/" + materialName + "_planks");

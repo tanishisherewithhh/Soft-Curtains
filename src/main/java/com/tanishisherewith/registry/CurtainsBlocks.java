@@ -12,11 +12,12 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
 public class CurtainsBlocks {
-    public static final Map<RodMaterial, Block> ROD_BLOCKS = new EnumMap<>(RodMaterial.class);
+    public static final Map<RodMaterial, Block> ROD_BLOCKS = new LinkedHashMap<>();
 
     static {
         for (RodMaterial material : RodMaterial.values()) {

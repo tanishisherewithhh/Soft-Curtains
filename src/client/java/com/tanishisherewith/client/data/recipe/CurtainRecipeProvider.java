@@ -38,11 +38,21 @@ public class CurtainRecipeProvider extends FabricRecipeProvider {
                     Block rodBlock = CurtainsBlocks.ROD_BLOCKS.get(material);
                     Item ingredientItem = material.getIngredientItem();
 
-                    ShapedRecipeBuilder.shaped(itemLookup, RecipeCategory.DECORATIONS, rodBlock, 3)
-                            .pattern("###")
-                            .define('#', ingredientItem)
-                            .unlockedBy("has_ingredient", has(ingredientItem))
-                            .save(output);
+                    if (material.isWood()) {
+                        ShapedRecipeBuilder.shaped(itemLookup, RecipeCategory.DECORATIONS, rodBlock, 3)
+                                .pattern("#S#")
+                                .define('#', ingredientItem)
+                                .define('S', Items.STICK)
+                                .unlockedBy("has_ingredient", has(ingredientItem))
+                                .unlockedBy("has_stick", has(Items.STICK))
+                                .save(output);
+                    } else {
+                        ShapedRecipeBuilder.shaped(itemLookup, RecipeCategory.DECORATIONS, rodBlock, 3)
+                                .pattern("###")
+                                .define('#', ingredientItem)
+                                .unlockedBy("has_ingredient", has(ingredientItem))
+                                .save(output);
+                    }
                 }
 
                 for (DyeColor color : DyeColor.values()) {

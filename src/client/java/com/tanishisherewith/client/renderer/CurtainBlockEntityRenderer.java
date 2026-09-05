@@ -32,10 +32,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBlockEntity, CurtainRenderState> {
-    public static final Identifier DRAPES_TEXTURE = Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "textures/item/curtain_drapes.png");
-    public static final Identifier ROLLER_TEXTURE = Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "textures/item/curtain_roller.png");
-    public static final Identifier SHUTTERS_TEXTURE = Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "textures/item/curtain_shutters.png");
-    public static final Identifier BLINDS_TEXTURE = Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "textures/item/curtain_blinds.png");
+    public static final Identifier DRAPES_TEXTURE = Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "textures/curtain_entity/curtain_drapes.png");
+    public static final Identifier ROLLER_TEXTURE = Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "textures/curtain_entity/curtain_roller.png");
+    public static final Identifier SHUTTERS_TEXTURE = Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "textures/curtain_entity/curtain_shutters.png");
+    public static final Identifier BLINDS_TEXTURE = Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "textures/curtain_entity/curtain_blinds.png");
     private static final float ROD_Z = 0.875f;
     private static final float BASE_THICKNESS = 0.015f;
     private static final float SHUTTER_THICKNESS = 0.045f;
@@ -468,18 +468,17 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             float fullTravelDistance = rodCenterY - targetFloorY;
 
             float progress = Mth.clampedMap(state.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
-            float deployFactor = 1.0f - progress;
-            float visibleLength = fullTravelDistance * deployFactor;
+            float visibleLength = fullTravelDistance * progress;
             float botY = rodCenterY - visibleLength;
 
             float minRollRadius = 0.032f;
             float maxRollRadius = 0.048f;
-            float currentRadius = Mth.lerp(1.0f - deployFactor, minRollRadius, maxRollRadius);
+            float currentRadius = Mth.lerp(1.0f - progress, minRollRadius, maxRollRadius);
 
-            float rolledTurns = (1.0f - deployFactor) * (float) state.length * 2.5f;
+            float rolledTurns = (1.0f - progress) * (float) state.length * 2.5f;
             float rollAngleOffset = (float) (rolledTurns * 2.0 * Math.PI);
 
-            float[] rollColor = getBlendedColor(state, 1.0f - deployFactor);
+            float[] rollColor = getBlendedColor(state, 1.0f - progress);
             int spoolLight = getLightForProgress(state, 0.0f);
 
             int rollSegments = 12;
@@ -538,8 +537,8 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                     float localFrac0 = (float) s / verticalSlices;
                     float localFrac1 = (float) (s + 1) / verticalSlices;
 
-                    float vProg0 = Mth.lerp(localFrac0, 1.0f - deployFactor, 1.0f);
-                    float vProg1 = Mth.lerp(localFrac1, 1.0f - deployFactor, 1.0f);
+                    float vProg0 = Mth.lerp(localFrac0, 1.0f - progress, 1.0f);
+                    float vProg1 = Mth.lerp(localFrac1, 1.0f - progress, 1.0f);
 
                     float yTopSlice = rodCenterY - (s * sliceHeight);
                     float yBotSlice = rodCenterY - ((s + 1) * sliceHeight);

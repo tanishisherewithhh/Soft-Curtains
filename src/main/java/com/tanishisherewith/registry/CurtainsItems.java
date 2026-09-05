@@ -14,11 +14,12 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
 public class CurtainsItems {
-    public static final Map<RodMaterial, Item> ROD_ITEMS = new EnumMap<>(RodMaterial.class);
+    public static final Map<RodMaterial, Item> ROD_ITEMS = new LinkedHashMap<>();
     public static final Map<DyeColor, Item> CURTAINS = new EnumMap<>(DyeColor.class);
     public static final Item TAILORING_SHEARS;
 

@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "softcurtains:item/curtain_drapes"
+    "layer0": "softcurtains:item/curtain_roller_item"
   }
 }
