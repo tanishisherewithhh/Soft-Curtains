@@ -3,6 +3,8 @@
 
 # **Soft Curtains**
 Soft Curtains is a fabric mod to add many types of curtains to your world
+
+[Modrinth Page](https://modrinth.com/mod/soft-curtains)
 </div>
 <br>
 
