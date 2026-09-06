@@ -237,14 +237,15 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
 
         if (stack.getItem() instanceof CurtainItem curtainItem && !state.getValue(HAS_CURTAIN)) {
             if (!level.isClientSide()) {
+                CurtainStyle itemStyle = stack.get(CurtainsComponents.CURTAIN_STYLE.get());
                 Direction facing = state.getValue(FACING);
 
                 Vec3 hitRel = hit.getLocation().subtract(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
                 Direction rightDir = facing.getClockWise();
                 double hitAlongRod = hitRel.x * rightDir.getStepX() + hitRel.z * rightDir.getStepZ();
 
-                boolean targetLeft = hitAlongRod < 0.0;
-                Direction searchDir = targetLeft ? facing.getCounterClockWise() : facing.getClockWise();
+                boolean expandRight = hitAlongRod < 0.0; // This means player is pointing on the left side of the rod
+                Direction searchDir = expandRight ? facing.getCounterClockWise() : facing.getClockWise();
                 BlockPos targetNeighborPos = pos.relative(searchDir);
                 BlockState targetNeighborState = level.getBlockState(targetNeighborPos);
 
@@ -253,7 +254,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                         targetNeighborState.getValue(HAS_CURTAIN)) {
 
                     BlockEntity targetBe = level.getBlockEntity(targetNeighborPos);
-                    if (targetBe instanceof CurtainBlockEntity neighborCurtain) {
+                    if (targetBe instanceof CurtainBlockEntity neighborCurtain && neighborCurtain.getStyle() == itemStyle) {
                         CurtainBlockEntity master = neighborCurtain.getMasterAnchor();
                         BlockPos masterAnchorPos = master.getBlockPos();
 
@@ -282,14 +283,12 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                     }
                 }
 
-                boolean expandRight = hitAlongRod < 0.0;
                 level.setBlock(pos, state.setValue(HAS_CURTAIN, true), Block.UPDATE_ALL);
                 BlockEntity newBe = level.getBlockEntity(pos);
                 if (newBe instanceof CurtainBlockEntity newCurtain) {
                     newCurtain.setupAsAnchor(curtainItem.getColor(), 1, expandRight, facing);
-                    CurtainStyle chosenStyle = stack.get(CurtainsComponents.CURTAIN_STYLE.get());
-                    if (chosenStyle != null) {
-                        newCurtain.setStyle(chosenStyle);
+                    if (itemStyle != null) {
+                        newCurtain.setStyle(itemStyle);
                     }
                 }
 
