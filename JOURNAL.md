@@ -65,15 +65,12 @@ I also added color blending to curtain drapes, rollers and shutters so different
 Unfortunately, I forgot to lapse this whole session :( 
 <br>i'll put the final images for each texture over here:
 
-<details> 
-	<summary>Open to view images</summary>
-	<p>
-	<img src=".github/journal/blinds_texture.png" width=300>
-	<img src=".github/journal/shutter_texture.png" width=300>
-	<img src=".github/journal/rollers_texture.png" width=300>
-	<img src=".github/journal/drapes_texture.png" width=300>
-	<img src=".github/journal/tailored_sheers_texture.png" width=300>
-</details>
+<img src=".github/journal/blinds_texture.png" width=300>
+<img src=".github/journal/shutter_texture.png" width=300>
+<img src=".github/journal/rollers_texture.png" width=300>
+<img src=".github/journal/drapes_texture.png" width=300>
+<img src=".github/journal/tailored_sheers_texture.png" width=300>
+
 
 I also added raycasting to better control the dragging of the curtains from anywhere.
 
