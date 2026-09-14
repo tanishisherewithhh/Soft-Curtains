@@ -31,9 +31,6 @@ public class CurtainItem extends Item {
     @Override
     public @NonNull Component getName(@NonNull ItemStack stack) {
         CurtainStyle style = getStyle(stack);
-        if (style == CurtainStyle.DRAPES) {
-            return super.getName(stack);
-        }
         return Component.translatable(this.getDescriptionId() + "." + style.getSerializedName());
     }
 
