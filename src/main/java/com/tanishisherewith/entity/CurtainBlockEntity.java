@@ -12,8 +12,6 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.EasingType;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
@@ -22,7 +20,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import org.apache.commons.lang3.Validate;
 import org.jspecify.annotations.Nullable;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -39,27 +36,27 @@ public class CurtainBlockEntity extends BlockEntity {
     public static final float PROGRESS_CLAMP = 0.01f;
 
     // gnerated phyiscs factors for tweaking
-    public static float BUNCH_WIDTH_MIN = 0.15f;
+    public static float BUNCH_WIDTH_MIN = PROGRESS_CLAMP + 0.1f;
     public static float BUNCH_WIDTH_RATIO = 0.15f;
 
-    public static int ANIM_MIN_TICKS = 30;
+    public static int ANIM_MIN_TICKS = 10;
     public static float ANIM_SCALE_DIVISOR = 0.92f;
-    public static int ANIM_TOGGLE_TICKS = 28;
+    public static int ANIM_TOGGLE_TICKS = 26;
     public static int ANIM_REDSTONE_CLOSE_TICKS = 24;
     public static int ANIM_REDSTONE_MAX_TICKS = 45;
     public static int ANIM_REDSTONE_SPEED_FACTOR = 2;
     public static int ANIM_REDSTONE_MIN_TICKS = 6;
 
-    public static float DRAPE_SWAY_DAMPING = 0.85f;
-    public static float DRAPE_SWAY_ACCEL = 0.25f;
-    public static float DRAPE_SWAY_MAX = 0.10f;
+    public static float DRAPE_SWAY_DAMPING = 0.88f;
+    public static float DRAPE_SWAY_ACCEL = 0.22f;
+    public static float DRAPE_SWAY_MAX = 0.12f;
     public static float DRAPE_BUNCH_WIND_REDUCTION = 0.80f;
     public static float DRAPE_WIND_BASE_SCALE = 0.20f;
     public static float DRAPE_FOLD_FREQ_BASE = 2.0f;
     public static float DRAPE_FOLD_FREQ_SPAN = 0.6f;
-    public static float DRAPE_FOLD_DEPTH = 0.025f;
+    public static float DRAPE_FOLD_DEPTH = 0.035f;
     public static float DRAPE_VELOCITY_DAMPING = 0.84f;
-    public static float DRAPE_VELOCITY_LIMIT = 0.10f;
+    public static float DRAPE_VELOCITY_LIMIT = 0.12f;
     public static float DRAPE_VERTICAL_RESTORE_FORCE = 0.18f;
     public static float DRAPE_WIND_TIME_SPEED = 0.03f;
     public static float DRAPE_WIND_SPATIAL_FREQ = 0.35f;
@@ -73,13 +70,7 @@ public class CurtainBlockEntity extends BlockEntity {
     public static float ROLLER_HEM_SWAY_TARGET_SCALE = 1.5f;
     public static float ROLLER_HEM_SWAY_ACCEL = 0.08f;
     public static float ROLLER_HEM_SWAY_DAMPING = 0.90f;
-    public static float ROLLER_VELOCITY_DAMPING_XY = 0.82f;
-    public static float ROLLER_VELOCITY_DAMPING_Z = 0.85f;
     public static float ROLLER_BILLOW_FORCE = 0.05f;
-    public static float ROLLER_HEM_SWAY_FORCE = 0.04f;
-    public static float ROLLER_VERTICAL_RESTORE_FORCE = 0.15f;
-    public static float ROLLER_HORIZONTAL_RESTORE_FORCE = 0.25f;
-    public static int ROLLER_SOLVER_ITERATIONS = 6;
 
     public static float PENDULUM_WIND_SCALE = 0.5f;
     public static float PENDULUM_OPEN_DAMPING = 0.5f;
@@ -101,7 +92,6 @@ public class CurtainBlockEntity extends BlockEntity {
     public static float SOUND_PITCH_VARIANCE = 0.08f;
 
     protected CurtainStyle style = CurtainStyle.DRAPES;
-
     public @Nullable String customTexture = null;
 
     public DyeColor color = DyeColor.WHITE;
@@ -117,12 +107,9 @@ public class CurtainBlockEntity extends BlockEntity {
     public float openProgress = 1.0f;
     public float prevOpenProgress = 1.0f;
     public float targetOpenProgress = 1.0f;
-
+    public float progressVelocity = 0.0f;
+    public float animOmega = 0.18f;
     public boolean isAnimating = false;
-    public float animStartProgress = 1.0f;
-    public float animTargetProgress = 1.0f;
-    public int animCurrentTick = 0;
-    public int animTotalTicks = 24;
 
     public float[][] posX;
     public float[][] posY;
@@ -146,18 +133,21 @@ public class CurtainBlockEntity extends BlockEntity {
             return;
         }
 
-        this.animStartProgress = this.openProgress;
-        this.animTargetProgress = Mth.clamp(target, PROGRESS_CLAMP, 1.0f);
-        this.targetOpenProgress = this.animTargetProgress;
+        float clampedTarget = Mth.clamp(target, PROGRESS_CLAMP, 1.0f);
+        if (this.isAnimating && Math.abs(this.targetOpenProgress - clampedTarget) < 0.0001f) {
+            return;
+        }
 
-        float distance = Math.abs(this.animTargetProgress - this.animStartProgress);
+        this.targetOpenProgress = clampedTarget;
+        float distance = Math.abs(this.targetOpenProgress - this.openProgress);
         float durationScale = Mth.sqrt(distance) / ANIM_SCALE_DIVISOR;
-        this.animTotalTicks = Math.max(ANIM_MIN_TICKS, Math.round(durationTicks * durationScale));
-        this.animCurrentTick = 0;
+        int totalTicks = Math.max(ANIM_MIN_TICKS, Math.round(durationTicks * durationScale));
+
+        this.animOmega = 4.5f / (float) totalTicks;
         this.isAnimating = true;
 
         this.setChanged();
-        if (this.level != null) {
+        if (this.level != null && !this.level.isClientSide()) {
             this.level.sendBlockUpdated(this.worldPosition, this.getBlockState(), this.getBlockState(), Block.UPDATE_ALL);
         }
     }
@@ -174,6 +164,7 @@ public class CurtainBlockEntity extends BlockEntity {
         this.openProgress = 1.0f;
         this.prevOpenProgress = 1.0f;
         this.targetOpenProgress = 1.0f;
+        this.progressVelocity = 0.0f;
         this.isAnimating = false;
         this.swayVelocityX = 0.0f;
         this.swayVelocityZ = 0.0f;
@@ -355,6 +346,7 @@ public class CurtainBlockEntity extends BlockEntity {
         float maxX = bounds[1];
         float usableWidth = maxX - minX;
         float totalHeight = (float) this.length - (1.0f - CURTAIN_TOP_Y);
+        float restV = totalHeight / (GRID_H - 1);
         float bunchWidth = Math.max(BUNCH_WIDTH_MIN, usableWidth * BUNCH_WIDTH_RATIO);
         float currentTopWidth = Mth.lerp(this.openProgress, bunchWidth, usableWidth);
         float topStart = this.expandRight ? minX : maxX - currentTopWidth;
@@ -389,15 +381,34 @@ public class CurtainBlockEntity extends BlockEntity {
         be.prevOpenProgress = be.openProgress;
 
         if (be.isAnimating) {
-            be.animCurrentTick++;
-            float t = (float) be.animCurrentTick / (float) be.animTotalTicks;
-            t = Mth.clamp(t, 0.0f, 1.0f);
-            be.openProgress = Mth.lerp(EasingType.IN_OUT_CUBIC.apply(t), be.animStartProgress, be.animTargetProgress);
-
-            if (be.animCurrentTick >= be.animTotalTicks) {
-                be.openProgress = be.animTargetProgress;
+            float delta = be.targetOpenProgress - be.openProgress;
+            if (Math.abs(delta) < 0.0002f && Math.abs(be.progressVelocity) < 0.0002f) {
+                be.openProgress = be.targetOpenProgress;
+                be.progressVelocity = 0.0f;
                 be.isAnimating = false;
                 be.setChanged();
+            } else {
+                float omega = be.animOmega;
+                float exp = (float) Math.exp(-omega);
+
+                float c1 = be.openProgress - be.targetOpenProgress;
+                float c2 = be.progressVelocity + omega * c1;
+
+                float newDelta = (c1 + c2) * exp;
+                float newVel = (c2 - omega * (c1 + c2)) * exp;
+
+                be.openProgress = Mth.clamp(be.targetOpenProgress + newDelta, PROGRESS_CLAMP, 1.0f);
+                be.progressVelocity = newVel;
+
+                if ((be.openProgress <= PROGRESS_CLAMP && be.progressVelocity < 0.0f)
+                        || (be.openProgress >= 1.0f && be.progressVelocity > 0.0f)) {
+                    be.progressVelocity = 0.0f;
+                    if (Math.abs(be.openProgress - be.targetOpenProgress) < 0.01f) {
+                        be.openProgress = be.targetOpenProgress;
+                        be.isAnimating = false;
+                        be.setChanged();
+                    }
+                }
             }
         }
 
@@ -499,7 +510,6 @@ public class CurtainBlockEntity extends BlockEntity {
         for (int ix = 0; ix < gw; ix++) {
             float u = (float) ix / (gw - 1);
             float pinX = Mth.lerp(u, topStart, topEnd);
-
             float movingFactor = this.expandRight ? u : (1.0f - u);
 
             for (int iy = 0; iy < gh; iy++) {
@@ -747,27 +757,14 @@ public class CurtainBlockEntity extends BlockEntity {
         float pitch = opening ? SOUND_PITCH_OPEN : SOUND_PITCH_CLOSE;
         pitch += (this.level.getRandom().nextFloat() - 0.5f) * SOUND_PITCH_VARIANCE;
 
-        if (this.level.isClientSide()) {
-            this.level.playLocalSound(
-                    this.worldPosition.getX() + 0.5,
-                    this.worldPosition.getY() + 0.5,
-                    this.worldPosition.getZ() + 0.5,
-                    sound,
-                    SoundSource.BLOCKS,
-                    volume,
-                    pitch,
-                    false
-            );
-        } else {
-            this.level.playSound(
-                    null,
-                    this.worldPosition,
-                    sound,
-                    SoundSource.BLOCKS,
-                    volume,
-                    pitch
-            );
-        }
+        this.level.playSound(
+                null,
+                this.worldPosition,
+                sound,
+                SoundSource.BLOCKS,
+                volume,
+                pitch
+        );
     }
 
     public float getMeshX(int ix, int iy, float tickDelta) {
@@ -808,12 +805,9 @@ public class CurtainBlockEntity extends BlockEntity {
         output.putInt("Length", this.length);
         output.putFloat("OpenProgress", this.openProgress);
         output.putFloat("TargetOpenProgress", this.targetOpenProgress);
-
+        output.putFloat("ProgressVelocity", this.progressVelocity);
+        output.putFloat("AnimOmega", this.animOmega);
         output.putBoolean("IsAnimating", this.isAnimating);
-        output.putFloat("AnimStartProgress", this.animStartProgress);
-        output.putFloat("AnimTargetProgress", this.animTargetProgress);
-        output.putInt("AnimCurrentTick", this.animCurrentTick);
-        output.putInt("AnimTotalTicks", this.animTotalTicks);
         output.putString("Style", this.style.getSerializedName());
 
         output.store("Segments", DyeColor.CODEC.listOf(), this.getSegmentColors());
@@ -838,17 +832,17 @@ public class CurtainBlockEntity extends BlockEntity {
         boolean newAnimating = input.getBooleanOr("IsAnimating", false);
         float newTarget = input.getFloatOr("TargetOpenProgress", 1.0f);
 
-        if (newAnimating && (!this.isAnimating || this.targetOpenProgress != newTarget)) {
-            this.isAnimating = true;
-            this.animStartProgress = input.getFloatOr("AnimStartProgress", this.openProgress);
-            this.animTargetProgress = input.getFloatOr("AnimTargetProgress", newTarget);
-            this.animCurrentTick = input.getIntOr("AnimCurrentTick", 0);
-            this.animTotalTicks = input.getIntOr("AnimTotalTicks", 24);
-            this.targetOpenProgress = newTarget;
-        } else if (!newAnimating && !this.isAnimating) {
+        if (newAnimating) {
+            if (!this.isAnimating || Math.abs(this.targetOpenProgress - newTarget) > 0.0001f) {
+                this.targetOpenProgress = newTarget;
+                this.animOmega = input.getFloatOr("AnimOmega", 0.18f);
+                this.isAnimating = true;
+            }
+        } else if (!this.isAnimating) {
             this.openProgress = input.getFloatOr("OpenProgress", 1.0f);
             this.targetOpenProgress = newTarget;
             this.prevOpenProgress = this.openProgress;
+            this.progressVelocity = 0.0f;
         }
 
         this.segmentColors.clear();
@@ -893,12 +887,9 @@ public class CurtainBlockEntity extends BlockEntity {
         tag.putInt("Length", this.length);
         tag.putFloat("OpenProgress", this.openProgress);
         tag.putFloat("TargetOpenProgress", this.targetOpenProgress);
-
+        tag.putFloat("ProgressVelocity", this.progressVelocity);
+        tag.putFloat("AnimOmega", this.animOmega);
         tag.putBoolean("IsAnimating", this.isAnimating);
-        tag.putFloat("AnimStartProgress", this.animStartProgress);
-        tag.putFloat("AnimTargetProgress", this.animTargetProgress);
-        tag.putInt("AnimCurrentTick", this.animCurrentTick);
-        tag.putInt("AnimTotalTicks", this.animTotalTicks);
         tag.putString("Style", this.style.getSerializedName());
 
         ListTag segList = new ListTag();
@@ -959,6 +950,7 @@ public class CurtainBlockEntity extends BlockEntity {
     public void setOpenProgress(float openProgress) {
         this.openProgress = openProgress;
         this.targetOpenProgress = openProgress;
+        this.progressVelocity = 0.0f;
         this.isAnimating = false;
     }
 }

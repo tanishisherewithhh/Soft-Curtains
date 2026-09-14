@@ -228,9 +228,7 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
             }
 
             if (player.isShiftKeyDown()) {
-                if (!level.isClientSide()) {
-                    master.toggle();
-                }
+                master.toggle();
                 return InteractionResult.SUCCESS;
             }
             return InteractionResult.SUCCESS;
