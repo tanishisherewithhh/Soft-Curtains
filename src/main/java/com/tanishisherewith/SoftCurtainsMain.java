@@ -57,7 +57,7 @@ public class SoftCurtainsMain implements ModInitializer {
                             Direction facing = anchorState.getValue(CurtainRodBlock.FACING);
                             Direction stepDir = anchorCurtain.isExpandRight() ? facing.getClockWise() : facing.getCounterClockWise();
                             int span = anchorCurtain.getSpan();
-                            float globalProgress = Mth.clamp(payload.openProgress(), 0.15f, 1.0f);
+                            float globalProgress = Mth.clamp(payload.openProgress(), CurtainBlockEntity.PROGRESS_CLAMP, 1.0f);
 
                             anchorCurtain.openProgress = globalProgress;
                             anchorCurtain.targetOpenProgress = globalProgress;

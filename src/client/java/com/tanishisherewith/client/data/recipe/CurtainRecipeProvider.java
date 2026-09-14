@@ -19,6 +19,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import org.jspecify.annotations.NonNull;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class CurtainRecipeProvider extends FabricRecipeProvider {
@@ -60,6 +61,21 @@ public class CurtainRecipeProvider extends FabricRecipeProvider {
                         .requires(Items.IRON_INGOT)
                         .unlockedBy("has_shears", has(Items.SHEARS))
                         .save(output);
+
+                for (Map.Entry<String, Item> entry : CurtainsItems.CUSTOM_CURTAINS.entrySet()) {
+                    String patternName = entry.getKey();
+                    Item customCurtainItem = entry.getValue();
+                    Item ingredientItem = CurtainsItems.CUSTOM_CURTAIN_INGREDIENTS.get(patternName);
+
+                    if (ingredientItem != null) {
+                        ShapelessRecipeBuilder.shapeless(itemLookup, RecipeCategory.DECORATIONS, customCurtainItem)
+                                .requires(whiteCurtain)
+                                .requires(ingredientItem)
+                                .unlockedBy("has_white_curtain", has(whiteCurtain))
+                                .unlockedBy("has_ingredient", has(ingredientItem))
+                                .save(output, customCurtainItem + "_from_crafting");
+                    }
+                }
 
                 for (DyeColor color : DyeColor.values()) {
                     Item curtainItem = CurtainsItems.CURTAINS.get(color);

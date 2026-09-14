@@ -3,6 +3,7 @@ package com.tanishisherewith.client.state;
 import com.tanishisherewith.entity.CurtainStyle;
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,4 +24,5 @@ public class CurtainRenderState extends BlockEntityRenderState {
     public int[] lightLevels;
     public float minX;
     public float maxX;
+    public String customTexture;
 }

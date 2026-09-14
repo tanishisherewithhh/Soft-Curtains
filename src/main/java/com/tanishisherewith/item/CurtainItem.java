@@ -6,18 +6,21 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
 public class CurtainItem extends Item {
     private final DyeColor color;
+    private final @Nullable String customTexture;
 
     public CurtainItem(Properties properties, DyeColor color) {
-        super(properties);
-        this.color = color;
+        this(properties, color, null);
     }
 
-    public DyeColor getColor() {
-        return this.color;
+    public CurtainItem(Properties properties, DyeColor color, @Nullable String customTexture) {
+        super(properties);
+        this.color = color;
+        this.customTexture = customTexture;
     }
 
     public static CurtainStyle getStyle(ItemStack stack) {
@@ -32,5 +35,13 @@ public class CurtainItem extends Item {
             return super.getName(stack);
         }
         return Component.translatable(this.getDescriptionId() + "." + style.getSerializedName());
+    }
+
+    public DyeColor getColor() {
+        return this.color;
+    }
+
+    public @Nullable String getCustomTexture() {
+        return this.customTexture;
     }
 }

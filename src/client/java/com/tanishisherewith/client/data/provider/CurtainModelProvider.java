@@ -26,6 +26,7 @@ import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 
+import java.util.Map;
 import java.util.Optional;
 
 public class CurtainModelProvider extends FabricModelProvider {
@@ -90,6 +91,33 @@ public class CurtainModelProvider extends FabricModelProvider {
             }
         }
 
+        // custom textured curtain
+        for (Map.Entry<String, Item> entry : CurtainsItems.CUSTOM_CURTAINS.entrySet()) {
+            String textureName = entry.getKey();
+            Item customItem = entry.getValue();
+
+            Identifier customDrapes = createCustomFlatModel(generator, textureName, "drapes");
+            Identifier customBlinds = createCustomFlatModel(generator, textureName, "blinds");
+            Identifier customShutters = createCustomFlatModel(generator, textureName, "shutters");
+            Identifier customRoller = createCustomFlatModel(generator, textureName, "roller");
+
+            ItemModel.Unbaked drapesPlain = ItemModelUtils.plainModel(customDrapes);
+            ItemModel.Unbaked blindsPlain = ItemModelUtils.plainModel(customBlinds);
+            ItemModel.Unbaked shuttersPlain = ItemModelUtils.plainModel(customShutters);
+            ItemModel.Unbaked rollerPlain = ItemModelUtils.plainModel(customRoller);
+
+            ItemModel.Unbaked selectModel = ItemModelUtils.select(
+                    CurtainStyleProperty.INSTANCE,
+                    drapesPlain,
+                    ItemModelUtils.when(CurtainStyle.DRAPES, drapesPlain),
+                    ItemModelUtils.when(CurtainStyle.BLINDS, blindsPlain),
+                    ItemModelUtils.when(CurtainStyle.SHUTTERS, shuttersPlain),
+                    ItemModelUtils.when(CurtainStyle.ROLLER, rollerPlain)
+            );
+
+            generator.itemModelOutput.accept(customItem, selectModel);
+        }
+
         for (RodMaterial mat : RodMaterial.values()) {
             Item rodItem = CurtainsItems.ROD_ITEMS.get(mat);
             if (rodItem != null) {
@@ -107,6 +135,17 @@ public class CurtainModelProvider extends FabricModelProvider {
                 .put(TextureSlot.LAYER0, new Material(Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "item/" + name)));
         return FLAT_LAYER0.create(
                 Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "item/" + name),
+                mapping,
+                generator.modelOutput
+        );
+    }
+
+    private Identifier createCustomFlatModel(ItemModelGenerators generator, String textureName, String styleName) {
+        String modelPath = "item/curtain_" + textureName + "_" + styleName;
+        TextureMapping mapping = new TextureMapping()
+                .put(TextureSlot.LAYER0, new Material(Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, modelPath)));
+        return FLAT_LAYER0.create(
+                Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, modelPath),
                 mapping,
                 generator.modelOutput
         );

@@ -18,9 +18,22 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * For future ref:
+ * <p>
+ * Curtain textures in
+ * {@code src/main/resources/assets/softcurtains/textures/item/}
+ * <br>
+ * Name th custom texture files like this:
+ * {@code curtain_<name>_<style>.png}
+ *
+ * </p>
+ */
 public class CurtainsItems {
     public static final Map<RodMaterial, Item> ROD_ITEMS = new LinkedHashMap<>();
     public static final Map<DyeColor, Item> CURTAINS = new EnumMap<>(DyeColor.class);
+    public static final Map<String, Item> CUSTOM_CURTAINS = new LinkedHashMap<>();
+    public static final Map<String, Item> CUSTOM_CURTAIN_INGREDIENTS = new LinkedHashMap<>();
     public static final Item TAILORING_SHEARS;
 
     static {
@@ -36,6 +49,16 @@ public class CurtainsItems {
         }
         TAILORING_SHEARS = register("tailoring_shears",
                 key -> new TailoringShearsItem(new Item.Properties().setId(key).durability(238)));
+    }
+
+    public static Item registerCustomCurtain(String name, Item ingredient) {
+        Item item = register("curtain_" + name,
+                key -> new CurtainItem(new Item.Properties().setId(key).stacksTo(16), DyeColor.WHITE, name));
+        CUSTOM_CURTAINS.put(name, item);
+        if (ingredient != null) {
+            CUSTOM_CURTAIN_INGREDIENTS.put(name, ingredient);
+        }
+        return item;
     }
 
     private static <T extends Item> T register(String name, Function<ResourceKey<Item>, T> itemFactory) {
