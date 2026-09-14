@@ -50,6 +50,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class CurtainRodBlock extends HorizontalDirectionalBlock implements EntityBlock {
     public static final MapCodec<CurtainRodBlock> CODEC = simpleCodec(CurtainRodBlock::new);
@@ -254,31 +255,37 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                         targetNeighborState.getValue(HAS_CURTAIN)) {
 
                     BlockEntity targetBe = level.getBlockEntity(targetNeighborPos);
-                    if (targetBe instanceof CurtainBlockEntity neighborCurtain && neighborCurtain.getStyle() == itemStyle) {
+                    if (targetBe instanceof CurtainBlockEntity neighborCurtain) {
                         CurtainBlockEntity master = neighborCurtain.getMasterAnchor();
                         BlockPos masterAnchorPos = master.getBlockPos();
 
-                        Direction expDir = master.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
-                        BlockPos expectedNextPos = masterAnchorPos.relative(expDir, master.getSpan());
+                        boolean sameStyle = master.getStyle() == itemStyle;
+                        boolean sameCustomTexture = Objects.equals(master.getCustomTexture(), curtainItem.getCustomTexture());
+                        boolean sameColor = (master.getCustomTexture() != null) || (master.getColor() == curtainItem.getColor());
 
-                        if (pos.equals(expectedNextPos)) {
-                            master.setSpan(master.getSpan() + 1);
-                            master.ensureGrid();
-                            master.resetGrid();
-                            master.setChanged();
-                            level.sendBlockUpdated(masterAnchorPos, level.getBlockState(masterAnchorPos), level.getBlockState(masterAnchorPos), Block.UPDATE_ALL);
+                        if(sameColor && sameStyle && sameCustomTexture) {
+                            Direction expDir = master.expandRight ? facing.getClockWise() : facing.getCounterClockWise();
+                            BlockPos expectedNextPos = masterAnchorPos.relative(expDir, master.getSpan());
 
-                            level.setBlock(pos, state.setValue(HAS_CURTAIN, true), Block.UPDATE_ALL);
-                            BlockEntity newBe = level.getBlockEntity(pos);
-                            if (newBe instanceof CurtainBlockEntity slice) {
-                                slice.setupAsSlice(masterAnchorPos);
+                            if (pos.equals(expectedNextPos)) {
+                                master.setSpan(master.getSpan() + 1);
+                                master.ensureGrid();
+                                master.resetGrid();
+                                master.setChanged();
+                                level.sendBlockUpdated(masterAnchorPos, level.getBlockState(masterAnchorPos), level.getBlockState(masterAnchorPos), Block.UPDATE_ALL);
+
+                                level.setBlock(pos, state.setValue(HAS_CURTAIN, true), Block.UPDATE_ALL);
+                                BlockEntity newBe = level.getBlockEntity(pos);
+                                if (newBe instanceof CurtainBlockEntity slice) {
+                                    slice.setupAsSlice(masterAnchorPos);
+                                }
+
+                                if (!player.isCreative()) {
+                                    stack.shrink(1);
+                                }
+                                level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
+                                return InteractionResult.SUCCESS;
                             }
-
-                            if (!player.isCreative()) {
-                                stack.shrink(1);
-                            }
-                            level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 1.0F, 1.0F);
-                            return InteractionResult.SUCCESS;
                         }
                     }
                 }
@@ -287,6 +294,9 @@ public class CurtainRodBlock extends HorizontalDirectionalBlock implements Entit
                 BlockEntity newBe = level.getBlockEntity(pos);
                 if (newBe instanceof CurtainBlockEntity newCurtain) {
                     newCurtain.setupAsAnchor(curtainItem.getColor(), 1, expandRight, facing);
+                    if (curtainItem.getCustomTexture() != null) {
+                        newCurtain.setCustomTexture(curtainItem.getCustomTexture());
+                    }
                     if (itemStyle != null) {
                         newCurtain.setStyle(itemStyle);
                     }

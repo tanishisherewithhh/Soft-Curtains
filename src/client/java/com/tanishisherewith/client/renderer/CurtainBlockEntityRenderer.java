@@ -47,13 +47,28 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
         return new CurtainRenderState();
     }
 
-    private static RenderType getRenderType(CurtainRenderState state) {
+    public static Identifier getTextureLocation(CurtainRenderState state) {
+        if (state.customTexture != null && !state.customTexture.isEmpty()) {
+            String path = state.customTexture;
+            if (!path.endsWith(".png")) {
+                path = path + ".png";
+            }
+            if (path.contains(":")) {
+                return Identifier.parse(path);
+            }
+            return Identifier.fromNamespaceAndPath(SoftCurtainsMain.MOD_ID, "textures/curtain_entity/" + path);
+        }
+
         return switch (state.style) {
-            case BLINDS -> RenderTypes.entityCutout(BLINDS_TEXTURE);
-            case SHUTTERS -> RenderTypes.entityCutout(SHUTTERS_TEXTURE);
-            case ROLLER -> RenderTypes.entityCutout(ROLLER_TEXTURE);
-            case DRAPES -> RenderTypes.entityCutout(DRAPES_TEXTURE);
+            case BLINDS -> BLINDS_TEXTURE;
+            case SHUTTERS -> SHUTTERS_TEXTURE;
+            case ROLLER -> ROLLER_TEXTURE;
+            case DRAPES -> DRAPES_TEXTURE;
         };
+    }
+
+    private static RenderType getRenderType(CurtainRenderState state) {
+        return RenderTypes.entityCutout(getTextureLocation(state));
     }
 
     @Override
@@ -97,6 +112,7 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
         state.expandRight = be.isExpandRight();
         state.length = be.getLength();
         state.facing = blockState.getValue(CurtainRodBlock.FACING);
+        state.customTexture = be.getCustomTexture();
 
         Level level = be.getLevel();
         BlockPos anchorPos = be.getBlockPos();
@@ -137,6 +153,11 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
     }
 
     private static float[] getBlendedColor(CurtainRenderState state, float vProgress) {
+        // no tinting for custom textures
+        if (state.customTexture != null && !state.customTexture.isEmpty()) {
+            return new float[]{1.0f, 1.0f, 1.0f};
+        }
+
         int count = state.segmentColors.size();
         if (count <= 1) {
             int c = count == 1 ? state.segmentColors.getFirst() : 0xFFFFFF;
@@ -249,7 +270,7 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             float slatSpacing = totalHangLength / (float) totalSlats;
             float bottomY = topY - ((totalSlats - 1) * slatSpacing);
 
-            float mappedProgress = Mth.clampedMap(state.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
+            float mappedProgress = Mth.clampedMap(state.openProgress, CurtainBlockEntity.PROGRESS_CLAMP, 1.0f, 0.0f, 1.0f);
             float slatDepth = (slatSpacing / (float) Math.sin(Math.toRadians(84.0f))) * 1.25f;
             float pitchAngle = (float) Math.toRadians(mappedProgress * 84.0f);
 
@@ -357,7 +378,7 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
 
             float panelH = (float) state.length - (1.0f - topY);
 
-            float mappedProgress = Mth.clampedMap(state.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
+            float mappedProgress = Mth.clampedMap(state.openProgress, CurtainBlockEntity.PROGRESS_CLAMP, 1.0f, 0.0f, 1.0f);
             float swingPitch = (float) Math.toRadians(mappedProgress * 85.0f);
             float cos = (float) Math.cos(swingPitch);
             float sin = (float) Math.sin(swingPitch);
@@ -467,7 +488,7 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             float targetFloorY = 1.0f - (float) state.length;
             float fullTravelDistance = rodCenterY - targetFloorY;
 
-            float progress = Mth.clampedMap(state.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
+            float progress = Mth.clampedMap(state.openProgress, CurtainBlockEntity.PROGRESS_CLAMP, 1.0f, 0.0f, 1.0f);
             float visibleLength = fullTravelDistance * progress;
             float botY = rodCenterY - visibleLength;
 
@@ -484,6 +505,8 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
             int rollSegments = 12;
             float[] spoolEndColor = new float[]{rollColor[0] * 0.85f, rollColor[1] * 0.85f, rollColor[2] * 0.85f};
 
+            float uSpan = (float) state.span;
+
             for (int seg = 0; seg < rollSegments; seg++) {
                 float a0 = rollAngleOffset + (float) (seg * 2.0 * Math.PI / rollSegments);
                 float a1 = rollAngleOffset + (float) ((seg + 1) * 2.0 * Math.PI / rollSegments);
@@ -496,14 +519,14 @@ public class CurtainBlockEntityRenderer implements BlockEntityRenderer<CurtainBl
                 float ny = (float) Math.sin((a0 + a1) * 0.5f);
                 float nz = (float) Math.cos((a0 + a1) * 0.5f);
 
-                float u0 = (float) seg / rollSegments;
-                float u1 = (float) (seg + 1) / rollSegments;
+                float v0 = (float) seg / rollSegments;
+                float v1 = (float) (seg + 1) / rollSegments;
 
                 putQuadUniformColor(matrix, buffer,
-                        x0, y0, z0, u0, 0.0f,
-                        x1, y0, z0, u0, 1.0f,
-                        x1, y1, z1, u1, 1.0f,
-                        x0, y1, z1, u1, 0.0f,
+                        x0, y0, z0, 0.0f, v0,
+                        x1, y0, z0, uSpan, v0,
+                        x1, y1, z1, uSpan, v1,
+                        x0, y1, z1, 0.0f, v1,
                         rollColor, 0.0f, ny, nz, spoolLight, overlay);
 
                 putQuadUniformColor(matrix, buffer,

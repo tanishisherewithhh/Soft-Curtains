@@ -153,7 +153,7 @@ public class CurtainDragController {
 
             if (Math.abs(rawDelta) > 0.001) {
                 double deltaProgress = rawDelta * DRAG_SENSITIVITY * lockedDragSign;
-                float newProgress = Mth.clamp((float) (curtain.openProgress + deltaProgress), 0.15f, 1.0f);
+                float newProgress = Mth.clamp((float) (curtain.openProgress + deltaProgress), CurtainBlockEntity.PROGRESS_CLAMP, 1.0f);
 
                 curtain.openProgress = newProgress;
                 curtain.targetOpenProgress = newProgress;
@@ -295,7 +295,7 @@ public class CurtainDragController {
         double bottomY;
 
         if (master.getStyle() == CurtainStyle.ROLLER) {
-            float progress = Mth.clampedMap(master.openProgress, 0.15f, 1.0f, 0.0f, 1.0f);
+            float progress = Mth.clampedMap(master.openProgress, CurtainBlockEntity.PROGRESS_CLAMP, 1.0f, 0.0f, 1.0f);
             float deployFactor = 1.0f - progress;
             float fullTravelDistance = CurtainBlockEntity.CURTAIN_TOP_Y - (1.0f - (float) master.getLength());
             float visibleLength = fullTravelDistance * deployFactor;
